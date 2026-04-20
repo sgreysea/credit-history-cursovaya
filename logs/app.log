@@ -1,0 +1,29 @@
+2026-03-29 10:40:38,334 INFO  com.credithistory.network.Server - Сервер запущен на порту 8080
+2026-03-29 13:06:34,123 INFO  com.credithistory.network.Server - Сервер запущен на порту 8080
+2026-03-29 13:09:00,834 INFO  com.credithistory.network.Server - Сервер запущен на порту 8080
+2026-03-31 23:37:56,039 INFO  com.credithistory.network.Server - Сервер запущен на порту 8080
+2026-03-31 23:38:30,631 INFO  com.credithistory.network.Server - Подключился клиент: /127.0.0.1
+2026-03-31 23:38:30,637 INFO  com.credithistory.service.UserService - Super admin created
+2026-03-31 23:38:30,646 INFO  com.credithistory.network.ClientHandler - Получен запрос: login 123 123
+2026-04-01 00:03:12,567 INFO  com.credithistory.network.Server - Сервер запущен на порту 8080
+2026-04-01 00:03:23,913 INFO  com.credithistory.network.Server - Подключился клиент: /127.0.0.1
+2026-04-01 00:03:23,918 INFO  com.credithistory.service.UserService - Super admin created
+2026-04-01 00:03:23,922 INFO  com.credithistory.network.ClientHandler - Получен запрос: login привет как
+2026-04-01 00:03:26,126 ERROR com.credithistory.network.ClientHandler - Ошибка клиента
+java.net.SocketException: Connection reset
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:316) ~[?:?]
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:354) ~[?:?]
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:798) ~[?:?]
+	at java.base/java.net.Socket$SocketInputStream.implRead(Socket.java:974) ~[?:?]
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:964) ~[?:?]
+	at java.base/sun.nio.cs.StreamDecoder.readBytes(StreamDecoder.java:279) ~[?:?]
+	at java.base/sun.nio.cs.StreamDecoder.implRead(StreamDecoder.java:322) ~[?:?]
+	at java.base/sun.nio.cs.StreamDecoder.read(StreamDecoder.java:186) ~[?:?]
+	at java.base/java.io.InputStreamReader.read(InputStreamReader.java:183) ~[?:?]
+	at java.base/java.io.BufferedReader.fill(BufferedReader.java:166) ~[?:?]
+	at java.base/java.io.BufferedReader.readLine(BufferedReader.java:333) ~[?:?]
+	at java.base/java.io.BufferedReader.readLine(BufferedReader.java:400) ~[?:?]
+	at com.credithistory.network.ClientHandler.run(ClientHandler.java:35) [classes/:?]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090) [?:?]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614) [?:?]
+	at java.base/java.lang.Thread.run(Thread.java:1474) [?:?]
