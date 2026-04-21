@@ -1,62 +1,84 @@
 package com.credithistory.model;
 
-import java.time.LocalDate;
+import java.io.Serializable;
 
-public class User {
+public class User implements Serializable {
 
-    private Long id;
-    private String fullName;
-    private String passportNumber;
-    private String email;
-    private String phone;
-
+    private int id;
     private String login;
     private String password;
-
+    private String fullName;
     private Role role;
+    private boolean isActive;
 
-    private int creditScore;
+    // Конструкторы
+    public User() {}
 
-    private LocalDate registrationDate;
-
-    public User(Long id, String fullName, String passportNumber, String email,
-                String phone, String login, String password, Role role) {
+    public User(int id, String login, String password, String fullName, Role role) {
         this.id = id;
-        this.fullName = fullName;
-        this.passportNumber = passportNumber;
-        this.email = email;
-        this.phone = phone;
         this.login = login;
         this.password = password;
+        this.fullName = fullName;
         this.role = role;
-        this.registrationDate = LocalDate.now();
+        this.isActive = true;
     }
 
-    public Long getId() {
+    // Геттеры и сеттеры
+    public int getId() {
         return id;
     }
 
-    public String getFullName() {
-        return fullName;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getLogin() {
         return login;
     }
 
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
     public String getPassword() {
         return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public Role getRole() {
         return role;
     }
 
-    public int getCreditScore() {
-        return creditScore;
+    public void setRole(Role role) {
+        this.role = role;
     }
 
-    public void setCreditScore(int creditScore) {
-        this.creditScore = creditScore;
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", login='" + login + '\'' +
+                ", fullName='" + fullName + '\'' +
+                ", role=" + role +
+                '}';
     }
 }

@@ -1,44 +1,25 @@
-<<<<<<< HEAD
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<VBox spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17" fx:controller="com.credithistory.client.LoginController">
+<VBox spacing="10" alignment="CENTER"
+      xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.credithistory.client.LoginController">
+
     <padding>
         <Insets top="30" right="30" bottom="30" left="30"/>
     </padding>
 
-    <Label text="вход в систему" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+    <Label text="Вход в систему" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
 
-    <TextField fx:id="loginField" promptText="логин"/>
-    <PasswordField fx:id="passwordField" promptText="пароль"/>
+    <TextField fx:id="loginField" promptText="Логин"/>
+    <PasswordField fx:id="passwordField" promptText="Пароль"/>
 
-    <Button text="войти" onAction="#handleLogin"/>
-    <Button text="регистрация" onAction="#handleRegister"/>
+    <Button text="Войти" onAction="#handleLogin"/>
+    <Button text="Регистрация" onAction="#handleRegister"/>
 
-    <Label fx:id="statusLabel" text="введите логин и пароль..."/>
-=======
-<?xml version="1.0" encoding="UTF-8"?>
-
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
-
-<VBox spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17" fx:controller="com.credithistory.client.LoginController">
-    <padding>
-        <Insets top="30" right="30" bottom="30" left="30"/>
-    </padding>
-
-    <Label text="вход в систему" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
-
-    <TextField fx:id="loginField" promptText="логин"/>
-    <PasswordField fx:id="passwordField" promptText="пароль"/>
-
-    <Button text="войти" onAction="#handleLogin"/>
-    <Button text="регистрация" onAction="#handleRegister"/>
-
-    <Label fx:id="statusLabel" text="введите логин и пароль..."/>
->>>>>>> 9a25b7675c45b2149c90b056a1d7d77d419d7ecd
+    <Label fx:id="statusLabel" text="Введите логин и пароль..."/>
 </VBox>
