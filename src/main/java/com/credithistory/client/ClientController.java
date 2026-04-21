@@ -13,9 +13,11 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 
+import java.util.Optional;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import javafx.stage.Modality;
 
 public class ClientController {
 
@@ -200,14 +202,14 @@ public class ClientController {
 
     @FXML
     private void handleAddClient() {
-        showAlert("Функция добавления клиента в разработке");
+        showClientDialog(null);
     }
 
     @FXML
     private void handleEditClient() {
         Client selected = clientsTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            showAlert("Редактирование клиента: " + selected.getFullName());
+            showClientDialog(selected);
         } else {
             showAlert("Выберите клиента для редактирования");
         }
@@ -220,7 +222,27 @@ public class ClientController {
             showAlert("Выберите клиента для удаления");
             return;
         }
-        showAlert("Удаление клиента в разработке");
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Подтверждение");
+        confirm.setHeaderText("Удалить клиента?");
+        confirm.setContentText("Вы уверены, что хотите удалить клиента " + selected.getFullName() + "?");
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            new Thread(() -> {
+                String response = networkClient.sendCommand("delete_client " + selected.getId());
+
+                Platform.runLater(() -> {
+                    if (response != null && response.startsWith("OK:")) {
+                        loadClients();
+                        updateStatus("Клиент удалён");
+                    } else {
+                        showAlert("Ошибка удаления: " + response);
+                    }
+                });
+            }).start();
+        }
     }
 
     @FXML
@@ -275,5 +297,29 @@ public class ClientController {
             alert.setContentText(message);
             alert.showAndWait();
         });
+    }
+    private void showClientDialog(Client client) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-dialog.fxml"));
+            Stage stage = new Stage();
+            stage.setScene(new Scene(loader.load()));
+            stage.setTitle(client == null ? "Добавить клиента" : "Редактировать клиента");
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(clientsTable.getScene().getWindow());
+
+            ClientDialogController controller = loader.getController();
+            controller.setNetworkClient(networkClient);
+            controller.setCurrentUserId(currentUser.getId());
+            controller.setClient(client);
+
+            stage.showAndWait();
+
+            if (controller.isSaved()) {
+                loadClients();  // Обновляем таблицу
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Ошибка открытия диалога");
+        }
     }
 }
