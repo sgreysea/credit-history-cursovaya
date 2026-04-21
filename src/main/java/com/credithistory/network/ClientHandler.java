@@ -121,17 +121,28 @@ public class ClientHandler implements Runnable {
 
     private String handleLogin(String[] parts) {
         if (parts.length < 3) {
-            return "ERROR:Неверный формат. Используйте: login <логин> <пароль>";
+            return "ERROR:Неверный формат";
         }
 
         String login = parts[1];
         String password = parts[2];
 
+        System.out.println("Попытка входа: логин='" + login + "', пароль='" + password + "'");
+
         User user = userDAO.findByLogin(login);
 
-        if (user != null && user.getPassword().equals(password)) {
-            currentUser = user;
-            return "OK:" + user.getRole().name() + ":" + user.getFullName();
+        if (user != null) {
+            System.out.println("Найден пользователь: " + user.getLogin() +
+                    ", пароль в БД: '" + user.getPassword() + "'");
+
+            if (user.getPassword().equals(password)) {
+                currentUser = user;
+                return "OK:" + user.getRole().name() + ":" + user.getFullName();
+            } else {
+                System.out.println("Пароль не совпадает!");
+            }
+        } else {
+            System.out.println("Пользователь не найден!");
         }
 
         return "ERROR:Неверный логин или пароль";
@@ -177,14 +188,18 @@ public class ClientHandler implements Runnable {
         }
 
         List<Client> clients = clientDAO.getAllClients();
-        StringBuilder sb = new StringBuilder("OK:");
+        System.out.println("Найдено клиентов: " + clients.size());
 
+        if (clients.isEmpty()) {
+            return "OK:";
+        }
+
+        StringBuilder sb = new StringBuilder("OK:");
         for (Client client : clients) {
             sb.append(client.getId()).append("|")
                     .append(client.getFullName()).append("|")
                     .append(client.getPassport()).append("|")
-                    .append(client.getPhone() != null ? client.getPhone() : "-").append("|")
-                    .append(client.getEmail() != null ? client.getEmail() : "-");
+                    .append(client.getPhone() != null ? client.getPhone() : "-");
             sb.append(";");
         }
 

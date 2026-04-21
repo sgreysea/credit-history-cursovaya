@@ -1,52 +1,93 @@
 package com.credithistory.service;
-import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
-import com.credithistory.model.Credit;
-import com.credithistory.model.User;
-import com.credithistory.util.LoggerUtil;
-import org.apache.logging.log4j.Logger;
 
-import com.credithistory.service.ScoreCalculator;
-import java.util.ArrayList;
+import com.credithistory.database.CreditDAO;
+import com.credithistory.database.PaymentDAO;
+import com.credithistory.model.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public class CreditService {
 
-    private static final Logger logger = LoggerUtil.getLogger(CreditService.class);
+    private final CreditDAO creditDAO;
+    private final PaymentDAO paymentDAO;
+    private final ScoreCalculator scoreCalculator;
 
-    private final List<Credit> credits = Collections.synchronizedList(new ArrayList<>());
-
-    public String createCredit(User user, double amount, double rate, int term) {
-
-        Credit credit = new Credit(
-                System.currentTimeMillis(),
-                amount,
-                rate,
-                term,
-                user
-        );
-
-        credits.add(credit);
-
-        logger.info("Кредит создан для пользователя: {}", user.getFullName());
-
-        return "success: credit created";
+    public CreditService() {
+        this.creditDAO = new CreditDAO();
+        this.paymentDAO = new PaymentDAO();
+        this.scoreCalculator = new ScoreCalculator();
     }
 
-    public List<Credit> getUserCredits(User user) {
-        List<Credit> result = new ArrayList<>();
+    // Получить все кредиты клиента
+    public List<Credit> getClientCredits(int clientId) {
+        return creditDAO.getCreditsByClientId(clientId);
+    }
 
-        for (Credit credit : credits) {
-            if (credit.getBorrower().equals(user)) {
-                result.add(credit);
-            }
+    // Оформить новый кредит
+    public Credit issueCredit(int clientId, int userId, BigDecimal amount,
+                              int termMonths, BigDecimal interestRate) {
+        Credit credit = new Credit(clientId, userId, amount, termMonths, interestRate, LocalDate.now());
+        boolean created = creditDAO.createCredit(credit);
+
+        if (created) {
+            // Генерируем график платежей
+            BigDecimal monthlyPayment = credit.getMonthlyPayment();
+            paymentDAO.generatePaymentSchedule(credit.getId(), monthlyPayment,
+                    credit.getIssueDate(), termMonths);
+            return credit;
         }
-
-        return result;
+        return null;
     }
-    public int getUserCreditScore(User user) {
-        List<Credit> userCredits = getUserCredits(user);
-        ScoreCalculator calculator = new ScoreCalculator();
-        return calculator.calculate(user, userCredits);
+
+    // Рассчитать кредитный рейтинг клиента
+    public int calculateClientScore(int clientId) {
+        return scoreCalculator.calculateScore(clientId);
+    }
+
+    // Получить полную информацию о кредитном рейтинге
+    public CreditScore getClientCreditScore(int clientId) {
+        return scoreCalculator.calculateScoreWithCategory(clientId);
+    }
+
+    // Закрыть кредит
+    public boolean closeCredit(int creditId) {
+        return creditDAO.closeCredit(creditId);
+    }
+
+    // Проверить, может ли клиент получить кредит
+    public boolean canGetCredit(int clientId, BigDecimal requestedAmount) {
+        int score = calculateClientScore(clientId);
+
+        if (score >= 700) {
+            return true;
+        } else if (score >= 550) {
+            // Может получить не более 70% от запрашиваемой суммы
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // Получить рекомендацию по кредиту
+    public String getCreditRecommendation(int clientId, BigDecimal requestedAmount) {
+        int score = calculateClientScore(clientId);
+        return scoreCalculator.getRecommendation(score, requestedAmount);
+    }
+
+    // Получить статистику по всем кредитам
+    public CreditDAO.CreditStatistics getOverallStatistics() {
+        return creditDAO.getStatistics();
+    }
+
+    // Получить активные кредиты
+    public List<Credit> getActiveCredits() {
+        return creditDAO.getActiveCredits();
+    }
+
+    // Получить просроченные кредиты
+    public List<Credit> getOverdueCredits() {
+        return creditDAO.getOverdueCredits();
     }
 }

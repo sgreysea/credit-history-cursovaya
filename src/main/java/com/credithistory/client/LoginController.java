@@ -41,10 +41,9 @@ public class LoginController {
 
             updateStatus("Проверка учетных данных...");
             String response = networkClient.sendCommand("login " + login + " " + password);
-            networkClient.close();
-
             if (response == null) {
                 updateStatus("Ошибка: нет ответа от сервера");
+                networkClient.close();
                 return;
             }
 
@@ -63,13 +62,15 @@ public class LoginController {
 
                 updateStatus("Вход выполнен успешно!");
 
-                // Открываем главное окно в зависимости от роли
-                Platform.runLater(() -> openMainWindow(currentUser));
+                // Открываем главное окно и ПЕРЕДАЁМ соединение
+                Platform.runLater(() -> openMainWindow(currentUser, networkClient));
 
             } else if (response.startsWith("ERROR:")) {
                 updateStatus("Ошибка: " + response.substring(6));
+                networkClient.close();
             } else {
                 updateStatus("Неверный логин или пароль");
+                networkClient.close();
             }
         }).start();
     }
@@ -113,44 +114,40 @@ public class LoginController {
         Platform.runLater(() -> statusLabel.setText(message));
     }
 
-    private void openMainWindow(User user) {
+    private void openMainWindow(User user, NetworkClient client) {
         try {
             String fxmlFile;
             String title;
 
-            // Выбираем FXML в зависимости от роли
             if (user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN) {
-                fxmlFile = "/admin-view.fxml";
+                fxmlFile = "/client-view.fxml";  // Пока для всех client-view
                 title = "Система учета кредитных историй — Администратор";
             } else {
                 fxmlFile = "/client-view.fxml";
-                title = "Система учета кредитных историй — Сотрудник банка";
+                title = "Система учета кредитных историй — " + user.getFullName();
             }
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlFile));
             Scene scene = new Scene(loader.load());
 
-            // Передаём пользователя в контроллер главного окна
             Object controller = loader.getController();
             if (controller instanceof ClientController) {
-                ((ClientController) controller).setCurrentUser(user);
-                // Загружаем список клиентов сразу после открытия
-                Platform.runLater(() -> {
-                    try {
-                        // Вызываем метод refresh через небольшой delay, чтобы окно успело открыться
-                        java.lang.reflect.Method method = controller.getClass().getMethod("handleRefresh");
-                        method.invoke(controller);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+                ClientController clientController = (ClientController) controller;
+                clientController.setCurrentUser(user);
+                clientController.setNetworkClient(client);  // ← ПЕРЕДАЁМ СОЕДИНЕНИЕ
+                clientController.initializeData();  // ← ЗАГРУЖАЕМ КЛИЕНТОВ
             }
 
             Stage stage = (Stage) loginField.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle(title);
             stage.setMaximized(true);
-            stage.setOnCloseRequest(e -> System.exit(0));
+            stage.setOnCloseRequest(e -> {
+                if (client != null) {
+                    client.close();
+                }
+                System.exit(0);
+            });
 
         } catch (IOException e) {
             updateStatus("Ошибка загрузки главного окна");

@@ -1,10 +1,7 @@
-package com.credithistory.service;
+package com.credithistory.model;
 
 import com.credithistory.database.PaymentDAO;
 import com.credithistory.database.CreditDAO;
-import com.credithistory.model.Credit;
-import com.credithistory.model.CreditScore;
-import com.credithistory.model.CreditStatus;
 
 import java.math.BigDecimal;
 import java.util.List;

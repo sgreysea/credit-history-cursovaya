@@ -11,13 +11,11 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Optional;
 
 public class ClientController {
 
@@ -41,7 +39,7 @@ public class ClientController {
 
     @FXML private Label statusLabel;
 
-    private NetworkClient networkClient;
+    private NetworkClient networkClient;  // ← ПЕРЕДАЁТСЯ из LoginController
     private User currentUser;
     private ObservableList<Client> clientsList = FXCollections.observableArrayList();
     private ObservableList<Credit> creditsList = FXCollections.observableArrayList();
@@ -51,6 +49,15 @@ public class ClientController {
         userInfoLabel.setText("Сотрудник: " + user.getFullName() + " (" + user.getRole().getDisplayName() + ")");
     }
 
+    public void setNetworkClient(NetworkClient networkClient) {
+        this.networkClient = networkClient;
+    }
+
+    // Вызывается после установки всех данных
+    public void initializeData() {
+        loadClients();
+    }
+
     @FXML
     private void initialize() {
         // Настройка колонок таблицы клиентов
@@ -58,10 +65,9 @@ public class ClientController {
         fullNameColumn.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         passportColumn.setCellValueFactory(new PropertyValueFactory<>("passport"));
         phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
-        ratingColumn.setCellValueFactory(cellData -> {
-            // Здесь должен быть рейтинг, пока ставим 0
-            return javafx.beans.binding.Bindings.createObjectBinding(() -> 500);
-        });
+        ratingColumn.setCellValueFactory(cellData ->
+                javafx.beans.binding.Bindings.createObjectBinding(() -> 500)
+        );
 
         clientsTable.setItems(clientsList);
 
@@ -85,15 +91,13 @@ public class ClientController {
     }
 
     private void loadClients() {
-        new Thread(() -> {
-            networkClient = new NetworkClient();
-            if (!networkClient.connect("localhost", 8080)) {
-                updateStatus("Ошибка подключения к серверу");
-                return;
-            }
+        if (networkClient == null || !networkClient.isConnected()) {
+            updateStatus("Нет подключения к серверу");
+            return;
+        }
 
+        new Thread(() -> {
             String response = networkClient.sendCommand("get_clients");
-            networkClient.close();
 
             Platform.runLater(() -> {
                 clientsList.clear();
@@ -103,25 +107,56 @@ public class ClientController {
                         String[] items = data.split(";");
                         for (String item : items) {
                             String[] fields = item.split("\\|");
-                            Client client = new Client();
-                            client.setId(Integer.parseInt(fields[0]));
-                            client.setFullName(fields[1]);
-                            client.setPassport(fields[2]);
-                            client.setPhone(fields[3]);
-                            clientsList.add(client);
+                            if (fields.length >= 4) {
+                                Client client = new Client();
+                                client.setId(Integer.parseInt(fields[0]));
+                                client.setFullName(fields[1]);
+                                client.setPassport(fields[2]);
+                                client.setPhone(fields[3]);
+                                clientsList.add(client);
+                            }
                         }
                     }
                     updateStatus("Загружено клиентов: " + clientsList.size());
                 } else {
-                    updateStatus("Ошибка загрузки клиентов");
+                    updateStatus("Ошибка загрузки клиентов: " + response);
                 }
             });
         }).start();
     }
 
     private void loadCreditsForClient(int clientId) {
-        // Заглушка, будет реализована позже
-        creditsList.clear();
+        if (networkClient == null || !networkClient.isConnected()) {
+            return;
+        }
+
+        new Thread(() -> {
+            String response = networkClient.sendCommand("get_credits " + clientId);
+
+            Platform.runLater(() -> {
+                creditsList.clear();
+                if (response != null && response.startsWith("OK:")) {
+                    String data = response.substring(3);
+                    if (!data.isEmpty()) {
+                        String[] items = data.split(";");
+                        for (String item : items) {
+                            String[] fields = item.split("\\|");
+                            if (fields.length >= 7) {
+                                Credit credit = new Credit();
+                                credit.setId(Integer.parseInt(fields[0]));
+                                credit.setClientId(Integer.parseInt(fields[1]));
+                                credit.setAmount(new BigDecimal(fields[2]));
+                                credit.setTermMonths(Integer.parseInt(fields[3]));
+                                credit.setInterestRate(new BigDecimal(fields[4]));
+                                credit.setIssueDate(LocalDate.parse(fields[5]));
+                                credit.setStatus(com.credithistory.model.CreditStatus.valueOf(fields[6]));
+                                creditsList.add(credit);
+                            }
+                        }
+                    }
+                }
+            });
+        }).start();
     }
 
     @FXML
@@ -136,7 +171,7 @@ public class ClientController {
             loadClients();
             return;
         }
-        // Реализация поиска
+        // TODO: реализация поиска
     }
 
     @FXML
@@ -147,6 +182,11 @@ public class ClientController {
 
     @FXML
     private void handleLogout() {
+        if (networkClient != null) {
+            networkClient.sendCommand("logout");
+            networkClient.close();
+        }
+
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/login.fxml"));
             Scene scene = new Scene(loader.load());
@@ -160,22 +200,17 @@ public class ClientController {
 
     @FXML
     private void handleAddClient() {
-        showClientDialog(null);
+        showAlert("Функция добавления клиента в разработке");
     }
 
     @FXML
     private void handleEditClient() {
         Client selected = clientsTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            showClientDialog(selected);
+            showAlert("Редактирование клиента: " + selected.getFullName());
         } else {
             showAlert("Выберите клиента для редактирования");
         }
-    }
-
-    private void showClientDialog(Client client) {
-        // Заглушка для диалога
-        showAlert("Функция в разработке");
     }
 
     @FXML
@@ -185,7 +220,7 @@ public class ClientController {
             showAlert("Выберите клиента для удаления");
             return;
         }
-        // Реализация удаления
+        showAlert("Удаление клиента в разработке");
     }
 
     @FXML
@@ -195,7 +230,7 @@ public class ClientController {
             showAlert("Выберите клиента");
             return;
         }
-        // Реализация просмотра истории
+        showAlert("Кредитная история клиента: " + selected.getFullName());
     }
 
     @FXML
@@ -205,17 +240,27 @@ public class ClientController {
             showAlert("Выберите клиента для оформления кредита");
             return;
         }
-        // Реализация оформления кредита
+        showAlert("Оформление кредита для: " + selected.getFullName());
     }
 
     @FXML
     private void handleShowPayments() {
-        // Реализация просмотра платежей
+        Credit selected = creditsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Выберите кредит для просмотра платежей");
+            return;
+        }
+        showAlert("График платежей по кредиту #" + selected.getId());
     }
 
     @FXML
     private void handleCloseCredit() {
-        // Реализация закрытия кредита
+        Credit selected = creditsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Выберите кредит для закрытия");
+            return;
+        }
+        showAlert("Закрытие кредита #" + selected.getId());
     }
 
     private void updateStatus(String message) {
@@ -223,10 +268,12 @@ public class ClientController {
     }
 
     private void showAlert(String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Информация");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Информация");
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.showAndWait();
+        });
     }
 }
