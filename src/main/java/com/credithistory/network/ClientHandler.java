@@ -1,145 +1,543 @@
-
 package com.credithistory.network;
 
-import com.credithistory.util.LoggerUtil;
-import org.apache.logging.log4j.Logger;
-import com.credithistory.model.User;
-import com.credithistory.service.UserService;
-import com.credithistory.service.CreditService;
+import com.credithistory.database.*;
+import com.credithistory.model.*;
+
 import java.io.*;
 import java.net.Socket;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 public class ClientHandler implements Runnable {
 
-    private static final Logger logger = LoggerUtil.getLogger(ClientHandler.class);
+    private Socket socket;
+    private BufferedReader in;
+    private PrintWriter out;
 
-    private final Socket socket;
-    private final UserService userService;
-    private final CreditService creditService;
+    // DAO объекты
+    private UserDAO userDAO;
+    private ClientDAO clientDAO;
+    private CreditDAO creditDAO;
+    private PaymentDAO paymentDAO;
+
+    // Текущий авторизованный пользователь
+    private User currentUser;
+
     public ClientHandler(Socket socket) {
         this.socket = socket;
-        this.userService = new UserService();
-        this.creditService = new CreditService();
+        this.userDAO = new UserDAO();
+        this.clientDAO = new ClientDAO();
+        this.creditDAO = new CreditDAO();
+        this.paymentDAO = new PaymentDAO();
     }
 
     @Override
     public void run() {
-        try (
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream()));
-                PrintWriter out = new PrintWriter(
-                        socket.getOutputStream(), true)
-        ) {
+        try {
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(socket.getOutputStream(), true);
 
-            String request;
-
-            while ((request = in.readLine()) != null) {
-                logger.info("Получен запрос: {}", request);
-
-                String response = processRequest(request);
-
+            String command;
+            while ((command = in.readLine()) != null) {
+                System.out.println("Получена команда: " + command);
+                String response = processCommand(command);
                 out.println(response);
+                System.out.println("Отправлен ответ: " + response);
             }
-
         } catch (IOException e) {
-            logger.error("Ошибка клиента", e);
+            System.err.println("Ошибка в ClientHandler: " + e.getMessage());
+        } finally {
+            closeConnection();
         }
     }
-    private String handleRegister(String[] parts) {
-        if (parts.length < 3) {
-            return "error: use register login password";
+
+    private String processCommand(String command) {
+        String[] parts = command.split(" ");
+        String action = parts[0];
+
+        try {
+            switch (action) {
+                // АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ
+                case "login":
+                    return handleLogin(parts);
+                case "register":
+                    return handleRegister(parts);
+                case "logout":
+                    return handleLogout();
+
+                // РАБОТА С КЛИЕНТАМИ
+                case "get_clients":
+                    return handleGetClients();
+                case "search_clients":
+                    return handleSearchClients(parts);
+                case "add_client":
+                    return handleAddClient(parts);
+                case "update_client":
+                    return handleUpdateClient(parts);
+                case "delete_client":
+                    return handleDeleteClient(parts);
+
+                // РАБОТА С КРЕДИТАМИ
+                case "get_credits":
+                    return handleGetCredits(parts);
+                case "add_credit":
+                    return handleAddCredit(parts);
+                case "close_credit":
+                    return handleCloseCredit(parts);
+
+                // РАБОТА С ПЛАТЕЖАМИ
+                case "get_payments":
+                    return handleGetPayments(parts);
+                case "mark_payment":
+                    return handleMarkPayment(parts);
+
+                // СТАТИСТИКА И РЕЙТИНГ
+                case "get_statistics":
+                    return handleGetStatistics();
+                case "calculate_rating":
+                    return handleCalculateRating(parts);
+
+                // АДМИНИСТРИРОВАНИЕ
+                case "get_users":
+                    return handleGetUsers();
+                case "add_user":
+                    return handleAddUser(parts);
+                case "delete_user":
+                    return handleDeleteUser(parts);
+                case "change_role":
+                    return handleChangeRole(parts);
+
+                default:
+                    return "ERROR:Неизвестная команда";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR:" + e.getMessage();
         }
-
-        String login = parts[1];
-        String password = parts[2];
-
-        return userService.register(login, password);
     }
+
+    // ==================== АВТОРИЗАЦИЯ ====================
+
     private String handleLogin(String[] parts) {
         if (parts.length < 3) {
-            return "error: use login login password";
+            return "ERROR:Неверный формат. Используйте: login <логин> <пароль>";
         }
 
         String login = parts[1];
         String password = parts[2];
 
-        if (login.equals("root") && password.equals("root123")) {
-            return "super admin logged in";
+        User user = userDAO.findByLogin(login);
+
+        if (user != null && user.getPassword().equals(password)) {
+            currentUser = user;
+            return "OK:" + user.getRole().name() + ":" + user.getFullName();
         }
 
-        return userService.login(login, password);
+        return "ERROR:Неверный логин или пароль";
     }
-    private String handleCreateCredit(String[] parts) {
+
+    private String handleRegister(String[] parts) {
+        if (parts.length < 3) {
+            return "ERROR:Неверный формат. Используйте: register <логин> <пароль>";
+        }
+
+        String login = parts[1];
+        String password = parts[2];
+        String fullName = login;
+
+        if (parts.length >= 4) {
+            fullName = parts[3];
+        }
+
+        // Проверяем, существует ли уже такой пользователь
+        if (userDAO.findByLogin(login) != null) {
+            return "ERROR:Пользователь с таким логином уже существует";
+        }
+
+        boolean created = userDAO.createUser(login, password, fullName);
+
+        if (created) {
+            return "OK:Регистрация успешна";
+        }
+
+        return "ERROR:Ошибка при регистрации";
+    }
+
+    private String handleLogout() {
+        currentUser = null;
+        return "OK:Выход выполнен";
+    }
+
+    // ==================== КЛИЕНТЫ ====================
+
+    private String handleGetClients() {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        List<Client> clients = clientDAO.getAllClients();
+        StringBuilder sb = new StringBuilder("OK:");
+
+        for (Client client : clients) {
+            sb.append(client.getId()).append("|")
+                    .append(client.getFullName()).append("|")
+                    .append(client.getPassport()).append("|")
+                    .append(client.getPhone() != null ? client.getPhone() : "-").append("|")
+                    .append(client.getEmail() != null ? client.getEmail() : "-");
+            sb.append(";");
+        }
+
+        return sb.toString();
+    }
+
+    private String handleSearchClients(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (parts.length < 2) {
+            return "ERROR:Укажите поисковый запрос";
+        }
+
+        String query = parts[1];
+        List<Client> clients = clientDAO.searchByName(query);
+        StringBuilder sb = new StringBuilder("OK:");
+
+        for (Client client : clients) {
+            sb.append(client.getId()).append("|")
+                    .append(client.getFullName()).append("|")
+                    .append(client.getPassport()).append("|")
+                    .append(client.getPhone() != null ? client.getPhone() : "-");
+            sb.append(";");
+        }
+
+        return sb.toString();
+    }
+
+    private String handleAddClient(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (parts.length < 4) {
+            return "ERROR:Неверный формат. Используйте: add_client <ФИО> <паспорт> <телефон>";
+        }
+
+        String fullName = parts[1];
+        String passport = parts[2];
+        String phone = parts[3];
+
+        Client client = new Client(fullName, passport, phone, currentUser.getId());
+        boolean created = clientDAO.createClient(client);
+
+        if (created) {
+            return "OK:" + client.getId();
+        }
+
+        return "ERROR:Не удалось добавить клиента";
+    }
+
+    private String handleUpdateClient(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
         if (parts.length < 5) {
-            return "error: use create_credit login amount rate term";
+            return "ERROR:Неверный формат";
         }
 
-        String login = parts[1];
-        double amount = Double.parseDouble(parts[2]);
-        double rate = Double.parseDouble(parts[3]);
-        int term = Integer.parseInt(parts[4]);
+        int id = Integer.parseInt(parts[1]);
+        String fullName = parts[2];
+        String passport = parts[3];
+        String phone = parts[4];
 
-        User user = userService.getUser(login);
-
-        if (user == null) {
-            return "error: user not found";
+        Client client = clientDAO.findById(id);
+        if (client == null) {
+            return "ERROR:Клиент не найден";
         }
 
-        return creditService.createCredit(user, amount, rate, term);
+        client.setFullName(fullName);
+        client.setPassport(passport);
+        client.setPhone(phone);
+
+        boolean updated = clientDAO.updateClient(client);
+
+        if (updated) {
+            return "OK:Данные обновлены";
+        }
+
+        return "ERROR:Не удалось обновить данные";
     }
-    private String handleMyScore(String[] parts) {
+
+    private String handleDeleteClient(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
+            return "ERROR:Недостаточно прав";
+        }
+
         if (parts.length < 2) {
-            return "error: use my_score login";
+            return "ERROR:Укажите ID клиента";
         }
 
-        String login = parts[1];
-        User user = userService.getUser(login);
+        int id = Integer.parseInt(parts[1]);
+        boolean deleted = clientDAO.deleteClient(id);
 
-        if (user == null) {
-            return "error: user not found";
+        if (deleted) {
+            return "OK:Клиент удалён";
         }
 
-        int score = creditService.getUserCreditScore(user);
-        return "Your credit score: " + score;
+        return "ERROR:Не удалось удалить клиента";
     }
-    private String handleMyCredits(String[] parts) {
+
+    // ==================== КРЕДИТЫ ====================
+
+    private String handleGetCredits(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        List<Credit> credits;
+
+        if (parts.length >= 2) {
+            int clientId = Integer.parseInt(parts[1]);
+            credits = creditDAO.getCreditsByClientId(clientId);
+        } else {
+            credits = creditDAO.getAllCredits();
+        }
+
+        StringBuilder sb = new StringBuilder("OK:");
+
+        for (Credit credit : credits) {
+            sb.append(credit.getId()).append("|")
+                    .append(credit.getClientId()).append("|")
+                    .append(credit.getAmount()).append("|")
+                    .append(credit.getTermMonths()).append("|")
+                    .append(credit.getInterestRate()).append("|")
+                    .append(credit.getIssueDate()).append("|")
+                    .append(credit.getStatus().name());
+            sb.append(";");
+        }
+
+        return sb.toString();
+    }
+
+    private String handleAddCredit(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (parts.length < 6) {
+            return "ERROR:Неверный формат. add_credit <clientId> <сумма> <срок(мес)> <ставка> <дата>";
+        }
+
+        int clientId = Integer.parseInt(parts[1]);
+        BigDecimal amount = new BigDecimal(parts[2]);
+        int termMonths = Integer.parseInt(parts[3]);
+        BigDecimal interestRate = new BigDecimal(parts[4]);
+        LocalDate issueDate = LocalDate.parse(parts[5]);
+
+        Credit credit = new Credit(clientId, currentUser.getId(), amount, termMonths, interestRate, issueDate);
+        boolean created = creditDAO.createCredit(credit);
+
+        if (created) {
+            // Автоматически создаём график платежей
+            BigDecimal monthlyPayment = credit.getMonthlyPayment();
+            paymentDAO.generatePaymentSchedule(credit.getId(), monthlyPayment, issueDate, termMonths);
+
+            return "OK:" + credit.getId();
+        }
+
+        return "ERROR:Не удалось создать кредит";
+    }
+
+    private String handleCloseCredit(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
         if (parts.length < 2) {
-            return "error: use my_credits login";
+            return "ERROR:Укажите ID кредита";
+        }
+
+        int creditId = Integer.parseInt(parts[1]);
+        boolean closed = creditDAO.closeCredit(creditId);
+
+        if (closed) {
+            return "OK:Кредит закрыт";
+        }
+
+        return "ERROR:Не удалось закрыть кредит";
+    }
+
+    // ==================== ПЛАТЕЖИ ====================
+
+    private String handleGetPayments(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (parts.length < 2) {
+            return "ERROR:Укажите ID кредита";
+        }
+
+        int creditId = Integer.parseInt(parts[1]);
+        List<Payment> payments = paymentDAO.getPaymentsByCreditId(creditId);
+
+        StringBuilder sb = new StringBuilder("OK:");
+
+        for (Payment payment : payments) {
+            sb.append(payment.getId()).append("|")
+                    .append(payment.getPlannedDate()).append("|")
+                    .append(payment.getPlannedAmount()).append("|")
+                    .append(payment.getStatus().name()).append("|")
+                    .append(payment.getActualDate() != null ? payment.getActualDate() : "-");
+            sb.append(";");
+        }
+
+        return sb.toString();
+    }
+
+    private String handleMarkPayment(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (parts.length < 3) {
+            return "ERROR:Укажите ID платежа и сумму";
+        }
+
+        int paymentId = Integer.parseInt(parts[1]);
+        BigDecimal amount = new BigDecimal(parts[2]);
+
+        boolean marked = paymentDAO.markAsPaid(paymentId, amount);
+
+        if (marked) {
+            return "OK:Платёж отмечен как оплаченный";
+        }
+
+        return "ERROR:Не удалось отметить платёж";
+    }
+
+    // ==================== СТАТИСТИКА ====================
+
+    private String handleGetStatistics() {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
+            return "ERROR:Недостаточно прав";
+        }
+
+        CreditDAO.CreditStatistics stats = creditDAO.getStatistics();
+
+        return "OK:" + stats.getTotalCredits() + "|" +
+                stats.getTotalAmount() + "|" +
+                stats.getActiveCount() + "|" +
+                stats.getClosedCount() + "|" +
+                stats.getOverdueCount();
+    }
+
+    private String handleCalculateRating(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (parts.length < 2) {
+            return "ERROR:Укажите ID клиента";
+        }
+
+        int clientId = Integer.parseInt(parts[1]);
+        PaymentDAO.PaymentStatistics stats = paymentDAO.getPaymentStatisticsByClientId(clientId);
+
+        // Простая формула расчёта рейтинга
+        int score = 500;
+        score += (int)(stats.getOnTimePercentage() * 3);
+        score -= stats.getOverdueCount() * 50;
+
+        score = Math.max(100, Math.min(850, score));
+
+        return "OK:" + score;
+    }
+
+    // ==================== АДМИНИСТРИРОВАНИЕ ====================
+
+    private String handleGetUsers() {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
+            return "ERROR:Недостаточно прав";
+        }
+
+        // Нужно добавить метод getAllUsers() в UserDAO
+        return "OK:Функция в разработке";
+    }
+
+    private String handleAddUser(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
+            return "ERROR:Недостаточно прав";
+        }
+
+        if (parts.length < 4) {
+            return "ERROR:add_user <логин> <пароль> <ФИО>";
         }
 
         String login = parts[1];
-        User user = userService.getUser(login);
+        String password = parts[2];
+        String fullName = parts[3];
 
-        if (user == null) {
-            return "error: user not found";
+        boolean created = userDAO.createUser(login, password, fullName);
+
+        if (created) {
+            return "OK:Пользователь создан";
         }
 
-        var credits = creditService.getUserCredits(user);
-
-        return "credits count: " + credits.size();
+        return "ERROR:Не удалось создать пользователя";
     }
-    private String processRequest(String request) {
 
-        String[] parts = request.split(" ");
+    private String handleDeleteUser(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
 
-        String command = parts[0];
+        if (currentUser.getRole() != Role.SUPER_ADMIN) {
+            return "ERROR:Только SUPER_ADMIN может удалять пользователей";
+        }
 
-        switch (command.toLowerCase()) {
+        return "OK:Функция в разработке";
+    }
 
-            case "ping":
-                return "pong";
-            case "register":
-                return handleRegister(parts);
-            case "login":
-                return handleLogin(parts);
-            case "create_credit":
-                return handleCreateCredit(parts);
-            case "my_score":
-                return handleMyScore(parts);
-            case "my_credits":
-                return handleMyCredits(parts);
-            default:
-                return "unknown command";
+    private String handleChangeRole(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (currentUser.getRole() != Role.SUPER_ADMIN) {
+            return "ERROR:Только SUPER_ADMIN может менять роли";
+        }
+
+        return "OK:Функция в разработке";
+    }
+
+    // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
+
+    private void closeConnection() {
+        try {
+            if (in != null) in.close();
+            if (out != null) out.close();
+            if (socket != null) socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
