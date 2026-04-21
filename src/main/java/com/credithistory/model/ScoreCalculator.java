@@ -58,6 +58,26 @@ public class ScoreCalculator {
             if (credit.getStatus() == CreditStatus.ACTIVE) {
                 activeCredits++;
                 totalDebt = totalDebt.add(credit.getAmount());
+
+                // Дополнительный анализ просрочек по активному кредиту
+                List<Payment> payments = paymentDAO.getPaymentsByCreditId(credit.getId());
+                for (Payment payment : payments) {
+                    if (payment.getStatus() == PaymentStatus.OVERDUE) {
+                        long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(
+                                payment.getPlannedDate(),
+                                java.time.LocalDate.now()
+                        );
+
+                        if (daysOverdue > 30) {
+                            score -= 100;  // Серьёзная просрочка (более 30 дней)
+                        } else if (daysOverdue > 7) {
+                            score -= 30;   // Средняя просрочка (8-30 дней)
+                        } else if (daysOverdue > 0) {
+                            score -= 10;   // Небольшая просрочка (1-7 дней)
+                        }
+                    }
+                }
+
             } else if (credit.getStatus() == CreditStatus.CLOSED) {
                 closedCredits++;
             }

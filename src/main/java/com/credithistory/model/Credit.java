@@ -72,4 +72,8 @@ public class Credit implements Serializable {
     public String toString() {
         return "Credit #" + id + " - " + amount + " BYN";
     }
+    // Метод для досрочного погашения (пересчёт оставшихся платежей)
+    public void recalculateRemainingPayments(BigDecimal extraPayment) {
+        // Логика будет в PaymentDAO
+    }
 }

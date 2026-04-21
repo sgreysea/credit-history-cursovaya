@@ -60,4 +60,17 @@ public class Payment implements Serializable {
     public String toString() {
         return plannedDate + " - " + plannedAmount + " BYN (" + status.getDisplayName() + ")";
     }
+    // В классе Payment добавь:
+    public BigDecimal getPenalty() {
+        if (status == PaymentStatus.OVERDUE && LocalDate.now().isAfter(plannedDate)) {
+            long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(plannedDate, LocalDate.now());
+            // Штраф 0.5% за каждый день просрочки
+            return plannedAmount.multiply(BigDecimal.valueOf(0.005 * daysOverdue));
+        }
+        return BigDecimal.ZERO;
+    }
+
+    public BigDecimal getTotalAmountWithPenalty() {
+        return plannedAmount.add(getPenalty());
+    }
 }

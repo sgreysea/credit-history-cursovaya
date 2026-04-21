@@ -256,16 +256,6 @@ public class ClientController {
     }
 
     @FXML
-    private void handleShowPayments() {
-        Credit selected = creditsTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Выберите кредит для просмотра платежей");
-            return;
-        }
-        showAlert("График платежей по кредиту #" + selected.getId());
-    }
-
-    @FXML
     private void handleCloseCredit() {
         Credit selected = creditsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -342,6 +332,33 @@ public class ClientController {
         } catch (IOException e) {
             e.printStackTrace();
             showAlert("Ошибка открытия диалога");
+        }
+    }
+    @FXML
+    private void handleShowPayments() {
+        Credit selected = creditsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Выберите кредит для просмотра платежей");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/payments-view.fxml"));
+            Stage stage = new Stage();
+            stage.setScene(new Scene(loader.load()));
+            stage.setTitle("График платежей");
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(clientsTable.getScene().getWindow());
+
+            PaymentsController controller = loader.getController();
+            controller.setCredit(selected);
+            controller.setNetworkClient(networkClient);
+            controller.loadPayments();
+
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Ошибка открытия окна платежей");
         }
     }
 }
