@@ -1,9 +1,17 @@
-
 package com.credithistory.model;
 
 public enum Role {
-    USER,
-    ADMIN,
-    SUPER_ADMIN
+    USER("Сотрудник"),
+    ADMIN("Администратор"),
+    SUPER_ADMIN("Супер-администратор");
 
+    private final String displayName;
+
+    Role(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
 }

@@ -1,41 +1,53 @@
-
 package com.credithistory.client;
 
 import java.io.*;
 import java.net.Socket;
 
 public class NetworkClient {
+
     private Socket socket;
-    private BufferedReader reader;
-    private PrintWriter writer;
+    private BufferedReader in;
+    private PrintWriter out;
 
     public boolean connect(String host, int port) {
         try {
             socket = new Socket(host, port);
-            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            writer = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(socket.getOutputStream(), true);
             return true;
         } catch (IOException e) {
+            System.err.println("Ошибка подключения: " + e.getMessage());
             return false;
         }
     }
 
     public String sendCommand(String command) {
         try {
-            writer.println(command);
-            return reader.readLine();
+            out.println(command);
+            return in.readLine();
         } catch (IOException e) {
-            return "ERROR: " + e.getMessage();
+            System.err.println("Ошибка отправки команды: " + e.getMessage());
+            return null;
         }
     }
 
-    public void disconnect() {
+    public boolean isConnected() {
+        return socket != null && socket.isConnected() && !socket.isClosed();
+    }
+
+    public void close() {
         try {
-            if (reader != null) reader.close();
-            if (writer != null) writer.close();
-            if (socket != null) socket.close();
+            if (out != null) {
+                out.close();
+            }
+            if (in != null) {
+                in.close();
+            }
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Ошибка при закрытии соединения: " + e.getMessage());
         }
     }
 }

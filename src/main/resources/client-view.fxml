@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.credithistory.client.ClientController">
+
+    <padding>
+        <Insets top="10" right="10" bottom="10" left="10"/>
+    </padding>
+
+    <!-- Верхняя панель с информацией о пользователе и кнопкой выхода -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label fx:id="userInfoLabel" text="Сотрудник: " style="-fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Обновить" onAction="#handleRefresh"/>
+        <Button text="Выход" onAction="#handleLogout" style="-fx-background-color: #f44336; -fx-text-fill: white;"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Поле поиска -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Поиск:"/>
+        <TextField fx:id="searchField" promptText="Введите ФИО клиента" HBox.hgrow="ALWAYS"/>
+        <Button text="Найти" onAction="#handleSearch"/>
+        <Button text="Сбросить" onAction="#handleResetSearch"/>
+    </HBox>
+
+    <!-- Таблица клиентов -->
+    <Label text="Клиенты банка:" style="-fx-font-weight: bold;"/>
+    <TableView fx:id="clientsTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" text="ID" prefWidth="50"/>
+            <TableColumn fx:id="fullNameColumn" text="ФИО" prefWidth="200"/>
+            <TableColumn fx:id="passportColumn" text="Паспорт" prefWidth="120"/>
+            <TableColumn fx:id="phoneColumn" text="Телефон" prefWidth="120"/>
+            <TableColumn fx:id="ratingColumn" text="Рейтинг" prefWidth="80"/>
+        </columns>
+    </TableView>
+
+    <!-- Кнопки управления клиентами -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Button text="Добавить клиента" onAction="#handleAddClient"/>
+        <Button text="Редактировать" onAction="#handleEditClient"/>
+        <Button text="Удалить" onAction="#handleDeleteClient" style="-fx-text-fill: #f44336;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Кредитная история" onAction="#handleShowCreditHistory"/>
+        <Button text="Оформить кредит" onAction="#handleAddCredit" style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Таблица кредитов выбранного клиента -->
+    <Label fx:id="selectedClientLabel" text="Кредиты клиента: не выбран" style="-fx-font-weight: bold;"/>
+    <TableView fx:id="creditsTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="creditIdColumn" text="ID" prefWidth="50"/>
+            <TableColumn fx:id="creditAmountColumn" text="Сумма" prefWidth="100"/>
+            <TableColumn fx:id="creditTermColumn" text="Срок (мес.)" prefWidth="80"/>
+            <TableColumn fx:id="creditRateColumn" text="Ставка (%)" prefWidth="80"/>
+            <TableColumn fx:id="creditDateColumn" text="Дата выдачи" prefWidth="100"/>
+            <TableColumn fx:id="creditStatusColumn" text="Статус" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <!-- Кнопки управления кредитами -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Button text="График платежей" onAction="#handleShowPayments"/>
+        <Button text="Закрыть кредит" onAction="#handleCloseCredit"/>
+    </HBox>
+
+    <!-- Статусная строка -->
+    <Label fx:id="statusLabel" text="Готово" style="-fx-text-fill: gray;"/>
+</VBox>
