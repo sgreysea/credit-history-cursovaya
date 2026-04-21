@@ -59,6 +59,19 @@ public class PaymentDAO {
         }
     }
 
+    public boolean skipPayment(int paymentId) {
+        String sql = "UPDATE payments SET status = 'OVERDUE' WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, paymentId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
     // Отметить платёж как оплаченный
     public boolean markAsPaid(int paymentId, java.math.BigDecimal actualAmount) {
         String sql = "UPDATE payments SET status = 'PAID', actual_date = ?, actual_amount = ? WHERE id = ?";

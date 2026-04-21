@@ -12,39 +12,28 @@
     </padding>
 
     <Label fx:id="titleLabel" text="График платежей" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-
     <Label fx:id="creditInfoLabel" text="Кредит: "/>
 
-    <!-- Таблица платежей -->
     <TableView fx:id="paymentsTable" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="idColumn" text="ID" prefWidth="50"/>
-            <TableColumn fx:id="plannedDateColumn" text="Плановая дата" prefWidth="120"/>
-            <TableColumn fx:id="plannedAmountColumn" text="Сумма" prefWidth="100"/>
+            <TableColumn fx:id="plannedDateColumn" text="План. дата" prefWidth="100"/>
+            <TableColumn fx:id="plannedAmountColumn" text="План. сумма" prefWidth="100"/>
             <TableColumn fx:id="statusColumn" text="Статус" prefWidth="100"/>
-            <TableColumn fx:id="actualDateColumn" text="Фактическая дата" prefWidth="120"/>
+            <TableColumn fx:id="actualDateColumn" text="Факт. дата" prefWidth="100"/>
             <TableColumn fx:id="actualAmountColumn" text="Факт. сумма" prefWidth="100"/>
+            <TableColumn fx:id="penaltyColumn" text="Штраф" prefWidth="80"/>
+            <TableColumn fx:id="totalColumn" text="Итого" prefWidth="100"/>
         </columns>
     </TableView>
 
-    <!-- После таблицы добавь: -->
-    <Separator/>
-
-    <Label text="График платежей" style="-fx-font-weight: bold;"/>
-
-    <LineChart fx:id="paymentChart" animated="false" createSymbols="true" VBox.vgrow="ALWAYS">
-        <xAxis>
-            <CategoryAxis label="Дата"/>
-        </xAxis>
-        <yAxis>
-            <NumberAxis label="Сумма (BYN)"/>
-        </yAxis>
-    </LineChart>
-
-    <!-- Кнопки управления -->
     <HBox spacing="10" alignment="CENTER_LEFT">
-        <Button text="Отметить как оплаченный" onAction="#handleMarkAsPaid"
+        <Button text="Оплатить" onAction="#handleMarkAsPaid"
                 style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
+        <Button text="Пропущен" onAction="#handleSkipPayment"
+                style="-fx-background-color: #f44336; -fx-text-fill: white;"/>
+        <Button text="Досрочное погашение" onAction="#handleEarlyPayment"
+                style="-fx-background-color: #FF9800; -fx-text-fill: white;"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="Обновить" onAction="#handleRefresh"/>
         <Button text="Закрыть" onAction="#handleClose"/>

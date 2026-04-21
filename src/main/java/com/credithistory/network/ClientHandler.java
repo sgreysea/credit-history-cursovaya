@@ -107,7 +107,10 @@ public class ClientHandler implements Runnable {
                     return handleDeleteUser(parts);
                 case "change_role":
                     return handleChangeRole(parts);
-
+                case "get_credit_info":
+                    return handleGetCreditInfo(parts);
+                case "skip_payment":
+                    return handleSkipPayment(parts);
                 default:
                     return "ERROR:Неизвестная команда";
             }
@@ -115,6 +118,44 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
             return "ERROR:" + e.getMessage();
         }
+    }
+    private String handleGetCreditInfo(String[] parts) {
+        if (parts.length < 2) {
+            return "ERROR:Укажите ID кредита";
+        }
+
+        int creditId = Integer.parseInt(parts[1]);
+        Credit credit = creditDAO.findById(creditId);
+
+        if (credit == null) {
+            return "ERROR:Кредит не найден";
+        }
+
+        return String.format("OK:%s|%d|%s",
+                credit.getAmount().toString(),
+                credit.getTermMonths(),
+                credit.getInterestRate().toString());
+    }
+
+    private String handleSkipPayment(String[] parts) {
+        if (currentUser == null) {
+            return "ERROR:Не авторизован";
+        }
+
+        if (parts.length < 2) {
+            return "ERROR:Укажите ID платежа";
+        }
+
+        int paymentId = Integer.parseInt(parts[1]);
+
+        // Отмечаем платёж как просроченный
+        boolean skipped = paymentDAO.skipPayment(paymentId);
+
+        if (skipped) {
+            return "OK:Платёж отмечен как пропущенный, начислен штраф";
+        }
+
+        return "ERROR:Не удалось обработать платёж";
     }
 
     // ==================== АВТОРИЗАЦИЯ ====================
@@ -426,13 +467,31 @@ public class ClientHandler implements Runnable {
         int paymentId = Integer.parseInt(parts[1]);
         BigDecimal amount = new BigDecimal(parts[2]);
 
-        boolean marked = paymentDAO.markAsPaid(paymentId, amount);
-
-        if (marked) {
-            return "OK:Платёж отмечен как оплаченный";
+        Payment payment = paymentDAO.findById(paymentId);
+        if (payment == null) {
+            return "ERROR:Платёж не найден";
         }
 
-        return "ERROR:Не удалось отметить платёж";
+        BigDecimal planned = payment.getPlannedAmount();
+        String message = "";
+
+        if (amount.compareTo(planned) < 0) {
+            // Частичная оплата
+            paymentDAO.markAsPaid(paymentId, amount);
+            message = "Частичная оплата. Остаток: " + planned.subtract(amount) + " BYN";
+        } else if (amount.compareTo(planned) > 0) {
+            // Оплата с переплатой - идёт на досрочное погашение
+            paymentDAO.markAsPaid(paymentId, planned);
+            BigDecimal extra = amount.subtract(planned);
+            paymentDAO.makeEarlyPayment(payment.getCreditId(), extra);
+            message = "Оплачено с переплатой " + extra + " BYN. Выполнено досрочное погашение.";
+        } else {
+            // Точная оплата
+            paymentDAO.markAsPaid(paymentId, amount);
+            message = "Платёж оплачен полностью";
+        }
+
+        return "OK:" + message;
     }
 
     // ==================== СТАТИСТИКА ====================
