@@ -359,10 +359,8 @@ public class ClientHandler implements Runnable {
         boolean created = creditDAO.createCredit(credit);
 
         if (created) {
-            // Автоматически создаём график платежей
             BigDecimal monthlyPayment = credit.getMonthlyPayment();
             paymentDAO.generatePaymentSchedule(credit.getId(), monthlyPayment, issueDate, termMonths);
-
             return "OK:" + credit.getId();
         }
 

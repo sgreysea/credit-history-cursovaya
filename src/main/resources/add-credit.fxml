@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.credithistory.client.AddCreditController">
+
+    <padding>
+        <Insets top="15" right="15" bottom="15" left="15"/>
+    </padding>
+
+    <Label fx:id="titleLabel" text="Оформить кредит" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+    <Label fx:id="clientInfoLabel" text="Клиент: "/>
+
+    <GridPane hgap="10" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints prefWidth="120"/>
+            <ColumnConstraints prefWidth="200"/>
+        </columnConstraints>
+
+        <Label text="Сумма кредита:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="amountField" promptText="10000.00" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+        <Label text="Срок (месяцев):" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <TextField fx:id="termField" promptText="12" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+        <Label text="Процентная ставка (%):" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <TextField fx:id="rateField" promptText="15.5" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+        <Label text="Ежемесячный платёж:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <Label fx:id="monthlyPaymentLabel" text="—" style="-fx-font-weight: bold;" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <Button text="Рассчитать платёж" onAction="#handleCalculate" maxWidth="Infinity"/>
+
+    <Separator/>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Оформить" onAction="#handleSave" style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
+        <Button text="Отмена" onAction="#handleCancel"/>
+    </HBox>
+
+    <Label fx:id="errorLabel" text="" style="-fx-text-fill: red;"/>
+</VBox>

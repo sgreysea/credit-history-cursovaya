@@ -256,16 +256,6 @@ public class ClientController {
     }
 
     @FXML
-    private void handleAddCredit() {
-        Client selected = clientsTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Выберите клиента для оформления кредита");
-            return;
-        }
-        showAlert("Оформление кредита для: " + selected.getFullName());
-    }
-
-    @FXML
     private void handleShowPayments() {
         Credit selected = creditsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -316,6 +306,38 @@ public class ClientController {
 
             if (controller.isSaved()) {
                 loadClients();  // Обновляем таблицу
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Ошибка открытия диалога");
+        }
+    }
+    @FXML
+    private void handleAddCredit() {
+        Client selected = clientsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Выберите клиента для оформления кредита");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/add-credit.fxml"));
+            Stage stage = new Stage();
+            stage.setScene(new Scene(loader.load()));
+            stage.setTitle("Оформить кредит");
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(clientsTable.getScene().getWindow());
+
+            AddCreditController controller = loader.getController();
+            controller.setClient(selected);
+            controller.setNetworkClient(networkClient);
+            controller.setCurrentUserId(currentUser.getId());
+
+            stage.showAndWait();
+
+            if (controller.isSaved()) {
+                loadCreditsForClient(selected.getId());
+                updateStatus("Кредит оформлен, ID: " + controller.getCreatedCreditId());
             }
         } catch (IOException e) {
             e.printStackTrace();
