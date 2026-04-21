@@ -5,13 +5,14 @@
 <?import javafx.geometry.Insets?>
 
 <VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.credithistory.client.PaymentsController">
+      fx:controller="com.credithistory.client.PaymentsController"
+      stylesheets="@style.css">
 
     <padding>
         <Insets top="15" right="15" bottom="15" left="15"/>
     </padding>
 
-    <Label fx:id="titleLabel" text="График платежей" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+    <Label fx:id="titleLabel" text="График платежей" styleClass="header"/>
     <Label fx:id="creditInfoLabel" text="Кредит: "/>
 
     <TableView fx:id="paymentsTable" VBox.vgrow="ALWAYS">
@@ -28,16 +29,13 @@
     </TableView>
 
     <HBox spacing="10" alignment="CENTER_LEFT">
-        <Button text="Оплатить" onAction="#handleMarkAsPaid"
-                style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
-        <Button text="Пропущен" onAction="#handleSkipPayment"
-                style="-fx-background-color: #f44336; -fx-text-fill: white;"/>
-        <Button text="Досрочное погашение" onAction="#handleEarlyPayment"
-                style="-fx-background-color: #FF9800; -fx-text-fill: white;"/>
+        <Button text="Оплатить" onAction="#handleMarkAsPaid" styleClass="button-green"/>
+        <Button text="Пропущен" onAction="#handleSkipPayment" styleClass="button-red"/>
+        <Button text="Досрочное погашение" onAction="#handleEarlyPayment" styleClass="button-yellow"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Обновить" onAction="#handleRefresh"/>
-        <Button text="Закрыть" onAction="#handleClose"/>
+        <Button text="Обновить" onAction="#handleRefresh" styleClass="button-gray"/>
+        <Button text="Закрыть" onAction="#handleClose" styleClass="button-gray"/>
     </HBox>
 
-    <Label fx:id="statusLabel" text="Готово" style="-fx-text-fill: gray;"/>
+    <Label fx:id="statusLabel" text="Готово" styleClass="status-label"/>
 </VBox>

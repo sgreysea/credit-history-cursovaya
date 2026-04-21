@@ -154,4 +154,10 @@ public class LoginController {
             e.printStackTrace();
         }
     }
+    @FXML
+    private void handleClear() {
+        loginField.clear();
+        passwordField.clear();
+        statusLabel.setText("Введите логин и пароль");
+    }
 }

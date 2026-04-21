@@ -5,13 +5,14 @@
 <?import javafx.geometry.Insets?>
 
 <VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.credithistory.client.ClientDialogController">
+      fx:controller="com.credithistory.client.ClientDialogController"
+      stylesheets="@style.css">
 
     <padding>
         <Insets top="15" right="15" bottom="15" left="15"/>
     </padding>
 
-    <Label fx:id="titleLabel" text="Добавить клиента" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+    <Label fx:id="titleLabel" text="Добавить клиента" styleClass="header"/>
 
     <GridPane hgap="10" vgap="10">
         <columnConstraints>
@@ -38,9 +39,9 @@
     <Separator/>
 
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="Сохранить" onAction="#handleSave" style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
-        <Button text="Отмена" onAction="#handleCancel"/>
+        <Button text="Сохранить" onAction="#handleSave" styleClass="button-green"/>
+        <Button text="Отмена" onAction="#handleCancel" styleClass="button-gray"/>
     </HBox>
 
-    <Label fx:id="errorLabel" text="" style="-fx-text-fill: red;"/>
+    <Label fx:id="errorLabel" text="" style="-fx-text-fill: #c75d5d;"/>
 </VBox>

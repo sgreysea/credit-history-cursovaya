@@ -85,6 +85,10 @@ public class ClientHandler implements Runnable {
                     return handleAddCredit(parts);
                 case "close_credit":
                     return handleCloseCredit(parts);
+                case "get_credit_info":
+                    return handleGetCreditInfo(parts);
+                case "skip_payment":
+                    return handleSkipPayment(parts);
 
                 // РАБОТА С ПЛАТЕЖАМИ
                 case "get_payments":
@@ -107,10 +111,6 @@ public class ClientHandler implements Runnable {
                     return handleDeleteUser(parts);
                 case "change_role":
                     return handleChangeRole(parts);
-                case "get_credit_info":
-                    return handleGetCreditInfo(parts);
-                case "skip_payment":
-                    return handleSkipPayment(parts);
                 default:
                     return "ERROR:Неизвестная команда";
             }
@@ -120,43 +120,24 @@ public class ClientHandler implements Runnable {
         }
     }
     private String handleGetCreditInfo(String[] parts) {
-        if (parts.length < 2) {
-            return "ERROR:Укажите ID кредита";
-        }
-
+        if (parts.length < 2) return "ERROR:Укажите ID кредита";
         int creditId = Integer.parseInt(parts[1]);
         Credit credit = creditDAO.findById(creditId);
-
-        if (credit == null) {
-            return "ERROR:Кредит не найден";
-        }
+        if (credit == null) return "ERROR:Кредит не найден";
 
         return String.format("OK:%s|%d|%s",
-                credit.getAmount().toString(),
-                credit.getTermMonths(),
-                credit.getInterestRate().toString());
+                credit.getAmount().toString(), credit.getTermMonths(), credit.getInterestRate().toString());
     }
 
     private String handleSkipPayment(String[] parts) {
-        if (currentUser == null) {
-            return "ERROR:Не авторизован";
-        }
-
-        if (parts.length < 2) {
-            return "ERROR:Укажите ID платежа";
-        }
+        if (currentUser == null) return "ERROR:Не авторизован";
+        if (parts.length < 2) return "ERROR:Укажите ID платежа";
 
         int paymentId = Integer.parseInt(parts[1]);
-
-        // Отмечаем платёж как просроченный
         boolean skipped = paymentDAO.skipPayment(paymentId);
-
-        if (skipped) {
-            return "OK:Платёж отмечен как пропущенный, начислен штраф";
-        }
-
-        return "ERROR:Не удалось обработать платёж";
+        return skipped ? "OK:Платёж отмечен как пропущенный, начислен штраф" : "ERROR:Не удалось обработать платёж";
     }
+
 
     // ==================== АВТОРИЗАЦИЯ ====================
 

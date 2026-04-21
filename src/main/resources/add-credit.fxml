@@ -5,14 +5,14 @@
 <?import javafx.geometry.Insets?>
 
 <VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.credithistory.client.AddCreditController">
+      fx:controller="com.credithistory.client.AddCreditController"
+      stylesheets="@style.css">
 
     <padding>
         <Insets top="15" right="15" bottom="15" left="15"/>
     </padding>
 
-    <Label fx:id="titleLabel" text="Оформить кредит" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-
+    <Label fx:id="titleLabel" text="Оформить кредит" styleClass="header"/>
     <Label fx:id="clientInfoLabel" text="Клиент: "/>
 
     <GridPane hgap="10" vgap="10">
@@ -34,14 +34,14 @@
         <Label fx:id="monthlyPaymentLabel" text="—" style="-fx-font-weight: bold;" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
     </GridPane>
 
-    <Button text="Рассчитать платёж" onAction="#handleCalculate" maxWidth="Infinity"/>
+    <Button text="Рассчитать платёж" onAction="#handleCalculate" maxWidth="Infinity" styleClass="button-gray"/>
 
     <Separator/>
 
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="Оформить" onAction="#handleSave" style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
-        <Button text="Отмена" onAction="#handleCancel"/>
+        <Button text="Оформить" onAction="#handleSave" styleClass="button-green"/>
+        <Button text="Отмена" onAction="#handleCancel" styleClass="button-gray"/>
     </HBox>
 
-    <Label fx:id="errorLabel" text="" style="-fx-text-fill: red;"/>
+    <Label fx:id="errorLabel" text="" style="-fx-text-fill: #c75d5d;"/>
 </VBox>

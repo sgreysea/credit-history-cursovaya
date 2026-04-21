@@ -5,32 +5,33 @@
 <?import javafx.geometry.Insets?>
 
 <VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.credithistory.client.ClientController">
+      fx:controller="com.credithistory.client.ClientController"
+      stylesheets="@style.css">
 
     <padding>
         <Insets top="10" right="10" bottom="10" left="10"/>
     </padding>
 
-    <!-- Верхняя панель с информацией о пользователе и кнопкой выхода -->
+    <!-- Верхняя панель -->
     <HBox spacing="10" alignment="CENTER_LEFT">
-        <Label fx:id="userInfoLabel" text="Сотрудник: " style="-fx-font-weight: bold;"/>
+        <Label fx:id="userInfoLabel" text="Сотрудник: " style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Обновить" onAction="#handleRefresh"/>
-        <Button text="Выход" onAction="#handleLogout" style="-fx-background-color: #f44336; -fx-text-fill: white;"/>
+        <Button text="Обновить" onAction="#handleRefresh" styleClass="button-gray"/>
+        <Button text="Выход" onAction="#handleLogout" styleClass="button-red"/>
     </HBox>
 
     <Separator/>
 
-    <!-- Поле поиска -->
-    <HBox spacing="10" alignment="CENTER_LEFT">
+    <!-- Поиск -->
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="search-panel">
         <Label text="Поиск:"/>
         <TextField fx:id="searchField" promptText="Введите ФИО клиента" HBox.hgrow="ALWAYS"/>
-        <Button text="Найти" onAction="#handleSearch"/>
-        <Button text="Сбросить" onAction="#handleResetSearch"/>
+        <Button text="Найти" onAction="#handleSearch" styleClass="button-green"/>
+        <Button text="Сбросить" onAction="#handleResetSearch" styleClass="button-gray"/>
     </HBox>
 
     <!-- Таблица клиентов -->
-    <Label text="Клиенты банка:" style="-fx-font-weight: bold;"/>
+    <Label text="Клиенты банка:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
     <TableView fx:id="clientsTable" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="idColumn" text="ID" prefWidth="50"/>
@@ -43,18 +44,19 @@
 
     <!-- Кнопки управления клиентами -->
     <HBox spacing="10" alignment="CENTER_LEFT">
-        <Button text="Добавить клиента" onAction="#handleAddClient"/>
-        <Button text="Редактировать" onAction="#handleEditClient"/>
-        <Button text="Удалить" onAction="#handleDeleteClient" style="-fx-text-fill: #f44336;"/>
+        <Button text="Добавить клиента" onAction="#handleAddClient" styleClass="button-green"/>
+        <Button text="Редактировать" onAction="#handleEditClient" styleClass="button-yellow"/>
+        <Button text="Удалить" onAction="#handleDeleteClient" styleClass="button-red"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Кредитная история" onAction="#handleShowCreditHistory"/>
-        <Button text="Оформить кредит" onAction="#handleAddCredit" style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
+        <Button text="Кредитная история" onAction="#handleShowCreditHistory" styleClass="button-gray"/>
+        <Button text="Оформить кредит" onAction="#handleAddCredit" styleClass="button-green"/>
     </HBox>
 
     <Separator/>
 
-    <!-- Таблица кредитов выбранного клиента -->
-    <Label fx:id="selectedClientLabel" text="Кредиты клиента: не выбран" style="-fx-font-weight: bold;"/>
+    <!-- Таблица кредитов -->
+    <Label fx:id="selectedClientLabel" text="Кредиты клиента: не выбран"
+           style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
     <TableView fx:id="creditsTable" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="creditIdColumn" text="ID" prefWidth="50"/>
@@ -68,10 +70,10 @@
 
     <!-- Кнопки управления кредитами -->
     <HBox spacing="10" alignment="CENTER_LEFT">
-        <Button text="График платежей" onAction="#handleShowPayments"/>
-        <Button text="Закрыть кредит" onAction="#handleCloseCredit"/>
+        <Button text="График платежей" onAction="#handleShowPayments" styleClass="button-green"/>
+        <Button text="Закрыть кредит" onAction="#handleCloseCredit" styleClass="button-yellow"/>
     </HBox>
 
     <!-- Статусная строка -->
-    <Label fx:id="statusLabel" text="Готово" style="-fx-text-fill: gray;"/>
+    <Label fx:id="statusLabel" text="Готово" styleClass="status-label"/>
 </VBox>

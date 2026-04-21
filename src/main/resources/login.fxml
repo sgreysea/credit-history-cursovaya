@@ -4,22 +4,28 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<VBox spacing="10" alignment="CENTER"
+<VBox spacing="15" alignment="CENTER"
       xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.credithistory.client.LoginController">
+      fx:controller="com.credithistory.client.LoginController"
+      stylesheets="@style.css">
 
     <padding>
-        <Insets top="30" right="30" bottom="30" left="30"/>
+        <Insets top="40" right="40" bottom="40" left="40"/>
     </padding>
 
-    <Label text="Вход в систему" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+    <Label text="система учета кредитных историй" styleClass="header"/>
+    <Label text="вход в систему" style="-fx-font-size: 16px; -fx-text-fill: #555555;"/>
 
-    <TextField fx:id="loginField" promptText="Логин"/>
-    <PasswordField fx:id="passwordField" promptText="Пароль"/>
+    <VBox spacing="10" alignment="CENTER" maxWidth="300">
+        <TextField fx:id="loginField" promptText="логин" maxWidth="250"/>
+        <PasswordField fx:id="passwordField" promptText="пароль" maxWidth="250"/>
+    </VBox>
 
-    <Button text="Войти" onAction="#handleLogin"/>
-    <Button text="Регистрация" onAction="#handleRegister"/>
+    <HBox spacing="15" alignment="CENTER">
+        <Button text="войти" onAction="#handleLogin" styleClass="button-green"/>
+        <Button text="очистить" onAction="#handleClear" styleClass="button-gray"/>
+    </HBox>
 
-    <Label fx:id="statusLabel" text="Введите логин и пароль..."/>
+    <Label fx:id="statusLabel" text="введите логин и пароль" styleClass="status-label"/>
 </VBox>

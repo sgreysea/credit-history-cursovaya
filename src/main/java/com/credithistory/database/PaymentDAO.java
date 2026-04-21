@@ -9,6 +9,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.credithistory.model.Credit;
+import com.credithistory.model.CreditStatus;
+import com.credithistory.model.ScoreCalculator;
+
 public class PaymentDAO {
 
 
@@ -66,12 +70,65 @@ public class PaymentDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, paymentId);
-            return stmt.executeUpdate() > 0;
+            int updated = stmt.executeUpdate();
+
+            if (updated > 0) {
+                // 1. Находим платёж, чтобы получить credit_id
+                Payment payment = findById(paymentId);
+                if (payment != null) {
+                    // 2. Находим кредит
+                    CreditDAO creditDAO = new CreditDAO();
+                    Credit credit = creditDAO.findById(payment.getCreditId());
+
+                    if (credit != null) {
+                        // 3. Проверяем, все ли платежи просрочены/оплачены
+                        List<Payment> allPayments = getPaymentsByCreditId(credit.getId());
+                        boolean allResolved = allPayments.stream()
+                                .allMatch(p -> p.getStatus() == PaymentStatus.PAID ||
+                                        p.getStatus() == PaymentStatus.OVERDUE);
+
+                        // 4. Если все платежи обработаны, но кредит не закрыт — закрываем
+                        if (allResolved && credit.getStatus() != CreditStatus.CLOSED) {
+                            creditDAO.closeCredit(credit.getId());
+                        }
+
+                        // 5. Пересчитываем кредитный рейтинг клиента
+                        ScoreCalculator calculator = new ScoreCalculator();
+                        int newScore = calculator.calculateScore(credit.getClientId());
+
+                        // 6. Сохраняем новый рейтинг в БД
+                        saveCreditRating(credit.getClientId(), newScore);
+
+                        System.out.println("Платёж #" + paymentId + " отмечен как просроченный. " +
+                                "Новый рейтинг клиента #" + credit.getClientId() + ": " + newScore);
+                    }
+                }
+                return true;
+            }
+            return false;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
+
+    // Вспомогательный метод для сохранения рейтинга
+    private void saveCreditRating(int clientId, int score) {
+        String sql = "INSERT INTO credit_ratings (client_id, score) VALUES (?, ?)";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, clientId);
+            stmt.setInt(2, score);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Вспомогательный метод для сохранения рейтинга
+
     // Отметить платёж как оплаченный
     public boolean markAsPaid(int paymentId, java.math.BigDecimal actualAmount) {
         String sql = "UPDATE payments SET status = 'PAID', actual_date = ?, actual_amount = ? WHERE id = ?";
