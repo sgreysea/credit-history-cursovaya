@@ -8,18 +8,16 @@ import java.util.List;
 
 public class ScoreCalculator {
 
-    // Базовый рейтинг нового клиента
+
     private static final int BASE_SCORE = 500;
 
-    // Максимальный и минимальный рейтинг
     private static final int MAX_SCORE = 850;
     private static final int MIN_SCORE = 100;
 
-    // Коэффициенты для расчёта
-    private static final double ON_TIME_BONUS_MULTIPLIER = 3.0;      // +3 балла за каждый % своевременных платежей
-    private static final int OVERDUE_PENALTY_PER_PAYMENT = 50;       // -50 баллов за каждый просроченный платёж
-    private static final int CLOSED_CREDIT_BONUS = 25;              // +25 баллов за каждый закрытый кредит
-    private static final int ACTIVE_CREDIT_PENALTY = 10;            // -10 баллов за каждый активный кредит
+    private static final double ON_TIME_BONUS_MULTIPLIER = 3.0;
+    private static final int OVERDUE_PENALTY_PER_PAYMENT = 50;
+    private static final int CLOSED_CREDIT_BONUS = 25;
+    private static final int ACTIVE_CREDIT_PENALTY = 10;
 
     private final PaymentDAO paymentDAO;
     private final CreditDAO creditDAO;
@@ -29,25 +27,16 @@ public class ScoreCalculator {
         this.creditDAO = new CreditDAO();
     }
 
-    /**
-     * Рассчитать кредитный рейтинг клиента
-     * @param clientId ID клиента
-     * @return кредитный рейтинг (от 100 до 850)
-     */
+
     public int calculateScore(int clientId) {
         int score = BASE_SCORE;
-
-        // 1. Получаем статистику по платежам
         PaymentDAO.PaymentStatistics paymentStats = paymentDAO.getPaymentStatisticsByClientId(clientId);
 
-        // 2. Бонус за своевременные платежи
         double onTimePercentage = paymentStats.getOnTimePercentage();
         score += (int) (onTimePercentage * ON_TIME_BONUS_MULTIPLIER);
 
-        // 3. Штраф за просроченные платежи
         score -= paymentStats.getOverdueCount() * OVERDUE_PENALTY_PER_PAYMENT;
 
-        // 4. Анализ кредитов клиента
         List<Credit> credits = creditDAO.getCreditsByClientId(clientId);
 
         int activeCredits = 0;
@@ -59,7 +48,6 @@ public class ScoreCalculator {
                 activeCredits++;
                 totalDebt = totalDebt.add(credit.getAmount());
 
-                // Дополнительный анализ просрочек по активному кредиту
                 List<Payment> payments = paymentDAO.getPaymentsByCreditId(credit.getId());
                 for (Payment payment : payments) {
                     if (payment.getStatus() == PaymentStatus.OVERDUE) {
@@ -69,11 +57,11 @@ public class ScoreCalculator {
                         );
 
                         if (daysOverdue > 30) {
-                            score -= 100;  // Серьёзная просрочка (более 30 дней)
+                            score -= 100;
                         } else if (daysOverdue > 7) {
-                            score -= 30;   // Средняя просрочка (8-30 дней)
+                            score -= 30;
                         } else if (daysOverdue > 0) {
-                            score -= 10;   // Небольшая просрочка (1-7 дней)
+                            score -= 10;
                         }
                     }
                 }
@@ -83,28 +71,19 @@ public class ScoreCalculator {
             }
         }
 
-        // 5. Бонус за закрытые кредиты
         score += closedCredits * CLOSED_CREDIT_BONUS;
 
-        // 6. Штраф за активные кредиты
         score -= activeCredits * ACTIVE_CREDIT_PENALTY;
 
-        // 7. Дополнительный штраф за большую долговую нагрузку
         if (totalDebt.compareTo(new BigDecimal("50000")) > 0) {
             score -= 50;
         } else if (totalDebt.compareTo(new BigDecimal("20000")) > 0) {
             score -= 25;
         }
 
-        // 8. Ограничение диапазона
         return Math.max(MIN_SCORE, Math.min(MAX_SCORE, score));
     }
 
-    /**
-     * Рассчитать рейтинг и вернуть с категорией
-     * @param clientId ID клиента
-     * @return объект CreditScore с рейтингом и категорией
-     */
     public CreditScore calculateScoreWithCategory(int clientId) {
         int score = calculateScore(clientId);
         String category = getScoreCategory(score);
@@ -113,9 +92,6 @@ public class ScoreCalculator {
         return new CreditScore(clientId, score, category, description);
     }
 
-    /**
-     * Получить категорию рейтинга
-     */
     public String getScoreCategory(int score) {
         if (score >= 700) {
             return "ВЫСОКИЙ";
@@ -126,9 +102,7 @@ public class ScoreCalculator {
         }
     }
 
-    /**
-     * Получить текстовое описание рейтинга
-     */
+
     public String getScoreDescription(int score) {
         if (score >= 750) {
             return "Отличная кредитная история. Высокая вероятность одобрения кредита на льготных условиях.";
@@ -145,9 +119,7 @@ public class ScoreCalculator {
         }
     }
 
-    /**
-     * Получить рекомендацию по кредитованию
-     */
+
     public String getRecommendation(int score, BigDecimal requestedAmount) {
         if (score >= 700) {
             return "РЕКОМЕНДОВАНО: Кредит до " + requestedAmount + " BYN может быть одобрен.";
@@ -162,9 +134,7 @@ public class ScoreCalculator {
         }
     }
 
-    /**
-     * Сравнить рейтинг клиента с другими клиентами
-     */
+
     public String getPercentileRank(int score) {
         if (score >= 750) {
             return "Топ 10% заёмщиков";
@@ -179,9 +149,7 @@ public class ScoreCalculator {
         }
     }
 
-    /**
-     * Рассчитать прогноз изменения рейтинга
-     */
+
     public int predictFutureScore(int clientId, int monthsAhead) {
         int currentScore = calculateScore(clientId);
         List<Credit> credits = creditDAO.getCreditsByClientId(clientId);
@@ -193,15 +161,12 @@ public class ScoreCalculator {
             }
         }
 
-        // Прогноз: если клиент будет платить вовремя, рейтинг растёт
         int predictedScore = currentScore;
 
         if (activeCredits > 0) {
-            // За каждый месяц своевременных платежей +3 балла
             predictedScore += monthsAhead * 3;
         }
 
-        // Уменьшение количества активных кредитов со временем
         predictedScore += monthsAhead / 12 * CLOSED_CREDIT_BONUS;
 
         return Math.max(MIN_SCORE, Math.min(MAX_SCORE, predictedScore));

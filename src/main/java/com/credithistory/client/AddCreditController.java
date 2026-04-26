@@ -107,7 +107,7 @@ public class AddCreditController {
                 return;
             }
 
-            // Отправляем на сервер
+            // ООТПРАВКА НА СЕРВАК
             new Thread(() -> {
                 String today = java.time.LocalDate.now().toString();
                 String command = String.format("add_credit %d %s %d %s %s",

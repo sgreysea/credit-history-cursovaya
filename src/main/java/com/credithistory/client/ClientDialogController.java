@@ -73,7 +73,7 @@ public class ClientDialogController {
         client.setAddress(addressField.getText().trim());
         client.setRegisteredBy(currentUserId);
 
-        // Отправляем на сервер
+        // отправка на сервак
         new Thread(() -> {
             String command;
             if (client.getId() == 0) {

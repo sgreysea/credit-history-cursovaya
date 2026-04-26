@@ -20,7 +20,7 @@ public class UserService {
     public UserService() {
         // создаем супер админа
         User superAdmin = new User(
-                0,                          // id (автоинкремент в БД)
+                0,                          // id
                 "root",                     // login
                 "root123",                  // password
                 "Super Admin",              // fullName
@@ -38,7 +38,7 @@ public class UserService {
         }
 
         User user = new User(
-                0,                          // id (0 = автоинкремент в БД)
+                0,                          // id
                 login,                      // login
                 password,                   // password
                 "User " + login,            // fullName

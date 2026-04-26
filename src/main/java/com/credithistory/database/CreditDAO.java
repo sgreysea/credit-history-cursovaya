@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CreditDAO {
-
-    // Получить все кредиты
     public List<Credit> getAllCredits() {
         List<Credit> credits = new ArrayList<>();
         String sql = "SELECT * FROM credits ORDER BY issue_date DESC";
@@ -26,8 +24,6 @@ public class CreditDAO {
         }
         return credits;
     }
-
-    // Получить кредиты конкретного клиента
     public List<Credit> getCreditsByClientId(int clientId) {
         List<Credit> credits = new ArrayList<>();
         String sql = "SELECT * FROM credits WHERE client_id = ? ORDER BY issue_date DESC";
@@ -46,8 +42,6 @@ public class CreditDAO {
         }
         return credits;
     }
-
-    // Получить кредит по ID
     public Credit findById(int id) {
         String sql = "SELECT * FROM credits WHERE id = ?";
 
@@ -65,8 +59,6 @@ public class CreditDAO {
         }
         return null;
     }
-
-    // Создать новый кредит
     public boolean createCredit(Credit credit) {
         String sql = "INSERT INTO credits (client_id, user_id, amount, term_months, " +
                 "interest_rate, issue_date, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -96,8 +88,6 @@ public class CreditDAO {
         }
         return false;
     }
-
-    // Обновить статус кредита
     public boolean updateStatus(int creditId, CreditStatus status) {
         String sql = "UPDATE credits SET status = ? WHERE id = ?";
 
@@ -113,18 +103,14 @@ public class CreditDAO {
             return false;
         }
     }
-
-    // Закрыть кредит (погашен)
     public boolean closeCredit(int creditId) {
         return updateStatus(creditId, CreditStatus.CLOSED);
     }
 
-    // Пометить как просроченный
     public boolean markAsOverdue(int creditId) {
         return updateStatus(creditId, CreditStatus.OVERDUE);
     }
 
-    // Получить активные кредиты
     public List<Credit> getActiveCredits() {
         List<Credit> credits = new ArrayList<>();
         String sql = "SELECT * FROM credits WHERE status = 'ACTIVE' ORDER BY issue_date DESC";
@@ -142,7 +128,6 @@ public class CreditDAO {
         return credits;
     }
 
-    // Получить просроченные кредиты
     public List<Credit> getOverdueCredits() {
         List<Credit> credits = new ArrayList<>();
         String sql = "SELECT * FROM credits WHERE status = 'OVERDUE' ORDER BY issue_date DESC";
@@ -159,8 +144,6 @@ public class CreditDAO {
         }
         return credits;
     }
-
-    // Получить статистику по кредитам
     public CreditStatistics getStatistics() {
         String sql = "SELECT " +
                 "COUNT(*) as total_credits, " +
@@ -188,8 +171,6 @@ public class CreditDAO {
         }
         return new CreditStatistics(0, java.math.BigDecimal.ZERO, 0, 0, 0);
     }
-
-    // Вспомогательный метод для маппинга ResultSet -> Credit
     private Credit mapResultSetToCredit(ResultSet rs) throws SQLException {
         Credit credit = new Credit();
         credit.setId(rs.getInt("id"));
@@ -203,8 +184,6 @@ public class CreditDAO {
         credit.setCreatedAt(rs.getTimestamp("created_at"));
         return credit;
     }
-
-    // Внутренний класс для статистики
     public static class CreditStatistics {
         private final int totalCredits;
         private final java.math.BigDecimal totalAmount;

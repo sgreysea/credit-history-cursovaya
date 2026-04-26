@@ -15,13 +15,13 @@ public class ClientHandler implements Runnable {
     private BufferedReader in;
     private PrintWriter out;
 
-    // DAO объекты
+
     private UserDAO userDAO;
     private ClientDAO clientDAO;
     private CreditDAO creditDAO;
     private PaymentDAO paymentDAO;
 
-    // Текущий авторизованный пользователь
+
     private User currentUser;
 
     public ClientHandler(Socket socket) {
@@ -58,7 +58,7 @@ public class ClientHandler implements Runnable {
 
         try {
             switch (action) {
-                // АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ
+                // авторизация и регистрация, регистрации нет убираю
                 case "login":
                     return handleLogin(parts);
                 case "register":
@@ -66,7 +66,7 @@ public class ClientHandler implements Runnable {
                 case "logout":
                     return handleLogout();
 
-                // РАБОТА С КЛИЕНТАМИ
+                // клиенты
                 case "get_clients":
                     return handleGetClients();
                 case "search_clients":
@@ -78,7 +78,7 @@ public class ClientHandler implements Runnable {
                 case "delete_client":
                     return handleDeleteClient(parts);
 
-                // РАБОТА С КРЕДИТАМИ
+                // кредиты
                 case "get_credits":
                     return handleGetCredits(parts);
                 case "add_credit":
@@ -90,19 +90,19 @@ public class ClientHandler implements Runnable {
                 case "skip_payment":
                     return handleSkipPayment(parts);
 
-                // РАБОТА С ПЛАТЕЖАМИ
+                // платежи
                 case "get_payments":
                     return handleGetPayments(parts);
                 case "mark_payment":
                     return handleMarkPayment(parts);
 
-                // СТАТИСТИКА И РЕЙТИНГ
+                // статистикаирецтинг
                 case "get_statistics":
                     return handleGetStatistics();
                 case "calculate_rating":
                     return handleCalculateRating(parts);
 
-                // АДМИНИСТРИРОВАНИЕ
+                // администратор
                 case "get_users":
                     return handleGetUsers();
                 case "add_user":
@@ -139,11 +139,9 @@ public class ClientHandler implements Runnable {
     }
 
 
-    // ==================== АВТОРИЗАЦИЯ ====================
-
     private String handleLogin(String[] parts) {
         if (parts.length < 3) {
-            return "ERROR:Неверный формат";
+            return "Неверный формат";
         }
 
         String login = parts[1];
@@ -167,12 +165,12 @@ public class ClientHandler implements Runnable {
             System.out.println("Пользователь не найден!");
         }
 
-        return "ERROR:Неверный логин или пароль";
+        return "Неверный логин или пароль";
     }
 
     private String handleRegister(String[] parts) {
         if (parts.length < 3) {
-            return "ERROR:Неверный формат. Используйте: register <логин> <пароль>";
+            return "Неверный формат. Используйте: register <логин> <пароль>";
         }
 
         String login = parts[1];
@@ -183,9 +181,9 @@ public class ClientHandler implements Runnable {
             fullName = parts[3];
         }
 
-        // Проверяем, существует ли уже такой пользователь
+
         if (userDAO.findByLogin(login) != null) {
-            return "ERROR:Пользователь с таким логином уже существует";
+            return "Пользователь с таким логином уже существует";
         }
 
         boolean created = userDAO.createUser(login, password, fullName);
@@ -194,19 +192,17 @@ public class ClientHandler implements Runnable {
             return "OK:Регистрация успешна";
         }
 
-        return "ERROR:Ошибка при регистрации";
+        return "Ошибка при регистрации";
     }
 
     private String handleLogout() {
         currentUser = null;
-        return "OK:Выход выполнен";
+        return "Выход выполнен";
     }
-
-    // ==================== КЛИЕНТЫ ====================
 
     private String handleGetClients() {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         List<Client> clients = clientDAO.getAllClients();
@@ -230,11 +226,11 @@ public class ClientHandler implements Runnable {
 
     private String handleSearchClients(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 2) {
-            return "ERROR:Укажите поисковый запрос";
+            return "Укажите поисковый запрос";
         }
 
         String query = parts[1];
@@ -254,11 +250,11 @@ public class ClientHandler implements Runnable {
 
     private String handleAddClient(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 4) {
-            return "ERROR:Неверный формат. Используйте: add_client <ФИО> <паспорт> <телефон>";
+            return "Неверный формат. Используйте: add_client <ФИО> <паспорт> <телефон>";
         }
 
         String fullName = parts[1];
@@ -272,16 +268,16 @@ public class ClientHandler implements Runnable {
             return "OK:" + client.getId();
         }
 
-        return "ERROR:Не удалось добавить клиента";
+        return "Не удалось добавить клиента";
     }
 
     private String handleUpdateClient(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 5) {
-            return "ERROR:Неверный формат";
+            return "Неверный формат";
         }
 
         int id = Integer.parseInt(parts[1]);
@@ -291,7 +287,7 @@ public class ClientHandler implements Runnable {
 
         Client client = clientDAO.findById(id);
         if (client == null) {
-            return "ERROR:Клиент не найден";
+            return "Клиент не найден";
         }
 
         client.setFullName(fullName);
@@ -304,20 +300,20 @@ public class ClientHandler implements Runnable {
             return "OK:Данные обновлены";
         }
 
-        return "ERROR:Не удалось обновить данные";
+        return "Не удалось обновить данные";
     }
 
     private String handleDeleteClient(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
-            return "ERROR:Недостаточно прав";
+            return "Недостаточно прав";
         }
 
         if (parts.length < 2) {
-            return "ERROR:Укажите ID клиента";
+            return "Укажите ID клиента";
         }
 
         int id = Integer.parseInt(parts[1]);
@@ -327,14 +323,13 @@ public class ClientHandler implements Runnable {
             return "OK:Клиент удалён";
         }
 
-        return "ERROR:Не удалось удалить клиента";
+        return ":Не удалось удалить клиента";
     }
 
-    // ==================== КРЕДИТЫ ====================
 
     private String handleGetCredits(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         List<Credit> credits;
@@ -364,11 +359,11 @@ public class ClientHandler implements Runnable {
 
     private String handleAddCredit(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 6) {
-            return "ERROR:Неверный формат. add_credit <clientId> <сумма> <срок(мес)> <ставка> <дата>";
+            return "Неверный формат. add_credit <clientId> <сумма> <срок(мес)> <ставка> <дата>";
         }
 
         int clientId = Integer.parseInt(parts[1]);
@@ -386,16 +381,16 @@ public class ClientHandler implements Runnable {
             return "OK:" + credit.getId();
         }
 
-        return "ERROR:Не удалось создать кредит";
+        return "Не удалось создать кредит";
     }
 
     private String handleCloseCredit(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 2) {
-            return "ERROR:Укажите ID кредита";
+            return "Укажите ID кредита";
         }
 
         int creditId = Integer.parseInt(parts[1]);
@@ -405,18 +400,17 @@ public class ClientHandler implements Runnable {
             return "OK:Кредит закрыт";
         }
 
-        return "ERROR:Не удалось закрыть кредит";
+        return "Не удалось закрыть кредит";
     }
 
-    // ==================== ПЛАТЕЖИ ====================
 
     private String handleGetPayments(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 2) {
-            return "ERROR:Укажите ID кредита";
+            return "Укажите ID кредита";
         }
 
         int creditId = Integer.parseInt(parts[1]);
@@ -438,11 +432,11 @@ public class ClientHandler implements Runnable {
 
     private String handleMarkPayment(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 3) {
-            return "ERROR:Укажите ID платежа и сумму";
+            return "Укажите ID платежа и сумму";
         }
 
         int paymentId = Integer.parseInt(parts[1]);
@@ -450,7 +444,7 @@ public class ClientHandler implements Runnable {
 
         Payment payment = paymentDAO.findById(paymentId);
         if (payment == null) {
-            return "ERROR:Платёж не найден";
+            return "Платёж не найден";
         }
 
         BigDecimal planned = payment.getPlannedAmount();
@@ -475,15 +469,14 @@ public class ClientHandler implements Runnable {
         return "OK:" + message;
     }
 
-    // ==================== СТАТИСТИКА ====================
 
     private String handleGetStatistics() {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
-            return "ERROR:Недостаточно прав";
+            return "Недостаточно прав";
         }
 
         CreditDAO.CreditStatistics stats = creditDAO.getStatistics();
@@ -497,11 +490,11 @@ public class ClientHandler implements Runnable {
 
     private String handleCalculateRating(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (parts.length < 2) {
-            return "ERROR:Укажите ID клиента";
+            return "Укажите ID клиента";
         }
 
         int clientId = Integer.parseInt(parts[1]);
@@ -517,32 +510,29 @@ public class ClientHandler implements Runnable {
         return "OK:" + score;
     }
 
-    // ==================== АДМИНИСТРИРОВАНИЕ ====================
-
     private String handleGetUsers() {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
-            return "ERROR:Недостаточно прав";
+            return "Недостаточно прав";
         }
 
-        // Нужно добавить метод getAllUsers() в UserDAO
         return "OK:Функция в разработке";
     }
 
     private String handleAddUser(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
-            return "ERROR:Недостаточно прав";
+            return "Недостаточно прав";
         }
 
         if (parts.length < 4) {
-            return "ERROR:add_user <логин> <пароль> <ФИО>";
+            return "add_user <логин> <пароль> <ФИО>";
         }
 
         String login = parts[1];
@@ -555,16 +545,16 @@ public class ClientHandler implements Runnable {
             return "OK:Пользователь создан";
         }
 
-        return "ERROR:Не удалось создать пользователя";
+        return "Не удалось создать пользователя";
     }
 
     private String handleDeleteUser(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (currentUser.getRole() != Role.SUPER_ADMIN) {
-            return "ERROR:Только SUPER_ADMIN может удалять пользователей";
+            return "Только SUPER_ADMIN может удалять пользователей";
         }
 
         return "OK:Функция в разработке";
@@ -572,17 +562,16 @@ public class ClientHandler implements Runnable {
 
     private String handleChangeRole(String[] parts) {
         if (currentUser == null) {
-            return "ERROR:Не авторизован";
+            return "Не авторизован";
         }
 
         if (currentUser.getRole() != Role.SUPER_ADMIN) {
-            return "ERROR:Только SUPER_ADMIN может менять роли";
+            return "Только SUPER_ADMIN может менять роли";
         }
 
         return "OK:Функция в разработке";
     }
 
-    // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
 
     private void closeConnection() {
         try {

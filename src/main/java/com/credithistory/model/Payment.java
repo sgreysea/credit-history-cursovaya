@@ -23,7 +23,7 @@ public class Payment implements Serializable {
         this.status = PaymentStatus.PENDING;
     }
 
-    // Геттеры и сеттеры
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
@@ -45,12 +45,10 @@ public class Payment implements Serializable {
     public PaymentStatus getStatus() { return status; }
     public void setStatus(PaymentStatus status) { this.status = status; }
 
-    // Проверка, просрочен ли платёж
     public boolean isOverdue() {
         return status == PaymentStatus.PENDING && LocalDate.now().isAfter(plannedDate);
     }
 
-    // Проверка, оплачен ли вовремя
     public boolean isPaidOnTime() {
         return status == PaymentStatus.PAID && actualDate != null
                 && !actualDate.isAfter(plannedDate);
@@ -60,7 +58,6 @@ public class Payment implements Serializable {
     public String toString() {
         return plannedDate + " - " + plannedAmount + " BYN (" + status.getDisplayName() + ")";
     }
-    // В классе Payment добавь:
     public BigDecimal getPenalty() {
         if (status == PaymentStatus.OVERDUE && LocalDate.now().isAfter(plannedDate)) {
             long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(plannedDate, LocalDate.now());

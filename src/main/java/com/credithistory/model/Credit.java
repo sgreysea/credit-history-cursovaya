@@ -17,7 +17,6 @@ public class Credit implements Serializable {
     private CreditStatus status;
     private Timestamp createdAt;
 
-    // Конструкторы
     public Credit() {}
 
     public Credit(int clientId, int userId, BigDecimal amount,
@@ -31,7 +30,6 @@ public class Credit implements Serializable {
         this.status = CreditStatus.ACTIVE;
     }
 
-    // Геттеры и сеттеры
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
@@ -59,7 +57,6 @@ public class Credit implements Serializable {
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
 
-    // Расчет ежемесячного платежа (аннуитет)
     public BigDecimal getMonthlyPayment() {
         double monthlyRate = interestRate.doubleValue() / 100 / 12;
         double amountDouble = amount.doubleValue();
@@ -72,8 +69,8 @@ public class Credit implements Serializable {
     public String toString() {
         return "Credit #" + id + " - " + amount + " BYN";
     }
-    // Метод для досрочного погашения (пересчёт оставшихся платежей)
+    // дострочное погашение которое не работет)))))))))))
     public void recalculateRemainingPayments(BigDecimal extraPayment) {
-        // Логика будет в PaymentDAO
+        // тут наверне в paymentdao
     }
 }

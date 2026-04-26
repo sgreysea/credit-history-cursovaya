@@ -55,14 +55,12 @@ public class ClientController {
         this.networkClient = networkClient;
     }
 
-    // Вызывается после установки всех данных
     public void initializeData() {
         loadClients();
     }
 
     @FXML
     private void initialize() {
-        // Настройка колонок таблицы клиентов
         idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         fullNameColumn.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         passportColumn.setCellValueFactory(new PropertyValueFactory<>("passport"));
@@ -73,7 +71,6 @@ public class ClientController {
 
         clientsTable.setItems(clientsList);
 
-        // Настройка колонок таблицы кредитов
         creditIdColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         creditAmountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         creditTermColumn.setCellValueFactory(new PropertyValueFactory<>("termMonths"));
@@ -83,7 +80,6 @@ public class ClientController {
 
         creditsTable.setItems(creditsList);
 
-        // Обработчик выбора клиента
         clientsTable.getSelectionModel().selectedItemProperty().addListener((obs, old, newClient) -> {
             if (newClient != null) {
                 selectedClientLabel.setText("Кредиты клиента: " + newClient.getFullName());
@@ -173,7 +169,7 @@ public class ClientController {
             loadClients();
             return;
         }
-        // TODO: реализация поиска
+
     }
 
     @FXML

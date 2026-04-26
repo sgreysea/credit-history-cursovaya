@@ -231,7 +231,7 @@ public class UserDAO {
         return false;
     }
 
-    // Получить количество пользователей по ролям (для статистики)
+    // получить колво пользователей по ролям емае
     public int countByRole(Role role) {
         String sql = "SELECT COUNT(*) FROM users WHERE role = ? AND is_active = true";
 

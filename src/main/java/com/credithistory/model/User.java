@@ -11,7 +11,7 @@ public class User implements Serializable {
     private Role role;
     private boolean isActive;
 
-    // Конструкторы
+
     public User() {}
 
     public User(int id, String login, String password, String fullName, Role role) {
@@ -23,7 +23,7 @@ public class User implements Serializable {
         this.isActive = true;
     }
 
-    // Геттеры и сеттеры
+
     public int getId() {
         return id;
     }

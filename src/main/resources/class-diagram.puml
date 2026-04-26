@@ -1,0 +1,410 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam packageStyle rectangle
+
+title Диаграмма классов системы учета кредитных историй
+
+'
+package "client"  {
+
+    class LoginController {
+        - loginField : TextField
+        - passwordField : PasswordField
+        - statusLabel : Label
+        - networkClient : NetworkClient
+        --
+        + handleLogin() : void
+        + handleRegister() : void
+        - updateStatus(String) : void
+        - openMainWindow(User) : void
+    }
+
+    class ClientController {
+        - userInfoLabel : Label
+        - searchField : TextField
+        - clientsTable : TableView<Client>
+        - creditsTable : TableView<Credit>
+        - statusLabel : Label
+        - networkClient : NetworkClient
+        - currentUser : User
+        - clientsList : ObservableList<Client>
+        - creditsList : ObservableList<Credit>
+        --
+        + setCurrentUser(User) : void
+        + setNetworkClient(NetworkClient) : void
+        + initializeData() : void
+        - loadClients() : void
+        - loadCreditsForClient(int) : void
+        + handleRefresh() : void
+        + handleAddClient() : void
+        + handleEditClient() : void
+        + handleDeleteClient() : void
+        + handleAddCredit() : void
+        + handleShowPayments() : void
+        + handleLogout() : void
+    }
+
+    class ClientDialogController {
+        - fullNameField : TextField
+        - passportField : TextField
+        - phoneField : TextField
+        - emailField : TextField
+        - addressField : TextField
+        - errorLabel : Label
+        - networkClient : NetworkClient
+        - currentUserId : int
+        - client : Client
+        - saved : boolean
+        --
+        + setNetworkClient(NetworkClient) : void
+        + setCurrentUserId(int) : void
+        + setClient(Client) : void
+        + isSaved() : boolean
+        + getClient() : Client
+        + handleSave() : void
+        + handleCancel() : void
+    }
+
+    class AddCreditController {
+        - clientInfoLabel : Label
+        - amountField : TextField
+        - termField : TextField
+        - rateField : TextField
+        - monthlyPaymentLabel : Label
+        - errorLabel : Label
+        - networkClient : NetworkClient
+        - currentUserId : int
+        - client : Client
+        - saved : boolean
+        - createdCreditId : int
+        --
+        + setNetworkClient(NetworkClient) : void
+        + setCurrentUserId(int) : void
+        + setClient(Client) : void
+        + isSaved() : boolean
+        + getCreatedCreditId() : int
+        + handleCalculate() : void
+        + handleSave() : void
+        + handleCancel() : void
+        - calculateMonthlyPayment(BigDecimal, BigDecimal, int) : BigDecimal
+    }
+
+    class PaymentsController {
+        - creditInfoLabel : Label
+        - paymentsTable : TableView<Payment>
+        - statusLabel : Label
+        - networkClient : NetworkClient
+        - credit : Credit
+        - paymentsList : ObservableList<Payment>
+        --
+        + setNetworkClient(NetworkClient) : void
+        + setCredit(Credit) : void
+        + loadPayments() : void
+        + handleRefresh() : void
+        + handleMarkAsPaid() : void
+        + handleSkipPayment() : void
+        + handleEarlyPayment() : void
+        + handleClose() : void
+    }
+
+    class NetworkClient {
+        - socket : Socket
+        - in : BufferedReader
+        - out : PrintWriter
+        --
+        + connect(String, int) : boolean
+        + sendCommand(String) : String
+        + isConnected() : boolean
+        + close() : void
+    }
+}
+
+' ==================== ПАКЕТ model ====================
+package "model" {
+
+    enum Role {
+        USER
+        ADMIN
+        SUPER_ADMIN
+        --
+        - displayName : String
+        + getDisplayName() : String
+    }
+
+    class User {
+        - id : int
+        - login : String
+        - password : String
+        - fullName : String
+        - role : Role
+        - isActive : boolean
+        --
+        + User()
+        + User(int, String, String, String, Role)
+        + getId() : int
+        + getLogin() : String
+        + getPassword() : String
+        + getFullName() : String
+        + getRole() : Role
+        + isActive() : boolean
+        + setters
+    }
+
+    class Client {
+        - id : int
+        - fullName : String
+        - passport : String
+        - phone : String
+        - email : String
+        - address : String
+        - registeredBy : int
+        - createdAt : Timestamp
+        --
+        + Client()
+        + Client(String, String, String, int)
+        + getId() : int
+        + getFullName() : String
+        + getPassport() : String
+        + getPhone() : String
+        + getEmail() : String
+        + getAddress() : String
+        + getRegisteredBy() : int
+        + setters
+    }
+
+    enum CreditStatus {
+        ACTIVE
+        CLOSED
+        OVERDUE
+        --
+        - displayName : String
+        + getDisplayName() : String
+    }
+
+    class Credit {
+        - id : int
+        - clientId : int
+        - userId : int
+        - amount : BigDecimal
+        - termMonths : int
+        - interestRate : BigDecimal
+        - issueDate : LocalDate
+        - status : CreditStatus
+        - createdAt : Timestamp
+        --
+        + Credit()
+        + Credit(int, int, BigDecimal, int, BigDecimal, LocalDate)
+        + getId() : int
+        + getClientId() : int
+        + getUserId() : int
+        + getAmount() : BigDecimal
+        + getTermMonths() : int
+        + getInterestRate() : BigDecimal
+        + getIssueDate() : LocalDate
+        + getStatus() : CreditStatus
+        + getMonthlyPayment() : BigDecimal
+        + setters
+    }
+
+    enum PaymentStatus {
+        PENDING
+        PAID
+        OVERDUE
+        --
+        - displayName : String
+        + getDisplayName() : String
+    }
+
+    class Payment {
+        - id : int
+        - creditId : int
+        - plannedDate : LocalDate
+        - plannedAmount : BigDecimal
+        - actualDate : LocalDate
+        - actualAmount : BigDecimal
+        - status : PaymentStatus
+        --
+        + Payment()
+        + getPenalty() : BigDecimal
+        + getTotalAmountWithPenalty() : BigDecimal
+        + isOverdue() : boolean
+        + isPaidOnTime() : boolean
+        + getters and setters
+    }
+
+    class CreditScore {
+        - id : int
+        - clientId : int
+        - score : int
+        - category : String
+        - description : String
+        - calculatedAt : LocalDateTime
+        --
+        + CreditScore()
+        + CreditScore(int, int, String, String)
+        + getters and setters
+    }
+
+    class ScoreCalculator {
+        - BASE_SCORE : int
+        - MAX_SCORE : int
+        - MIN_SCORE : int
+        - paymentDAO : PaymentDAO
+        - creditDAO : CreditDAO
+        --
+        + ScoreCalculator()
+        + calculateScore(int) : int
+        + calculateScoreWithCategory(int) : CreditScore
+        + getScoreCategory(int) : String
+        + getScoreDescription(int) : String
+        + getRecommendation(int, BigDecimal) : String
+        + predictFutureScore(int, int) : int
+    }
+}
+
+' ==================== ПАКЕТ database ====================
+package "database"  {
+
+    class DatabaseConnection {
+        - URL : String
+        - USER : String
+        - PASSWORD : String
+        - connection : Connection
+        --
+        - DatabaseConnection()
+        + getConnection() : Connection
+        + closeConnection() : void
+    }
+
+    class UserDAO {
+        + findByLogin(String) : User
+        + findById(int) : User
+        + getAllUsers() : List<User>
+        + createUser(String, String, String) : boolean
+        + createUserWithRole(String, String, String, Role) : boolean
+        + checkPassword(String, String) : boolean
+        + updateUser(User) : boolean
+        + changePassword(int, String) : boolean
+        + deactivateUser(int) : boolean
+        + deleteUserPermanently(int) : boolean
+        + existsByLogin(String) : boolean
+    }
+
+    class ClientDAO {
+        + getAllClients() : List<Client>
+        + findById(int) : Client
+        + searchByName(String) : List<Client>
+        + createClient(Client) : boolean
+        + updateClient(Client) : boolean
+        + deleteClient(int) : boolean
+    }
+
+    class CreditDAO {
+        + getAllCredits() : List<Credit>
+        + getCreditsByClientId(int) : List<Credit>
+        + findById(int) : Credit
+        + createCredit(Credit) : boolean
+        + updateStatus(int, CreditStatus) : boolean
+        + closeCredit(int) : boolean
+        + markAsOverdue(int) : boolean
+        + getActiveCredits() : List<Credit>
+        + getOverdueCredits() : List<Credit>
+        + getStatistics() : CreditStatistics
+    }
+
+    class PaymentDAO {
+        + getPaymentsByCreditId(int) : List<Payment>
+        + findById(int) : Payment
+        + generatePaymentSchedule(int, BigDecimal, LocalDate, int) : boolean
+        + markAsPaid(int, BigDecimal) : boolean
+        + skipPayment(int) : boolean
+        + makeEarlyPayment(int, BigDecimal) : boolean
+        + getOverduePayments() : List<Payment>
+        + markOverduePayments() : int
+        + getPaymentStatisticsByClientId(int) : PaymentStatistics
+    }
+}
+
+' ==================== ПАКЕТ network ====================
+package "network"  {
+
+    class Server {
+        - PORT : int
+        - executor : ExecutorService
+        - isRunning : boolean
+        --
+        + start() : void
+        + stop() : void
+        - handleClient(Socket) : void
+    }
+
+    class ClientHandler {
+        - socket : Socket
+        - in : BufferedReader
+        - out : PrintWriter
+        - userDAO : UserDAO
+        - clientDAO : ClientDAO
+        - creditDAO : CreditDAO
+        - paymentDAO : PaymentDAO
+        - currentUser : User
+        --
+        + ClientHandler(Socket)
+        + run() : void
+        - processCommand(String) : String
+        - handleLogin(String[]) : String
+        - handleRegister(String[]) : String
+        - handleGetClients() : String
+        - handleAddClient(String[]) : String
+        - handleGetCredits(String[]) : String
+        - handleAddCredit(String[]) : String
+        - handleGetPayments(String[]) : String
+        - handleMarkPayment(String[]) : String
+        - handleSkipPayment(String[]) : String
+        - handleEarlyPayment(String[]) : String
+    }
+}
+
+' ==================== СВЯЗИ ====================
+
+' Клиентские зависимости
+LoginController --> NetworkClient
+ClientController --> NetworkClient
+ClientController --> ClientDialogController : <<opens>>
+ClientController --> AddCreditController : <<opens>>
+ClientController --> PaymentsController : <<opens>>
+ClientDialogController --> NetworkClient
+AddCreditController --> NetworkClient
+PaymentsController --> NetworkClient
+
+' Сетевые зависимости
+ClientHandler --> UserDAO
+ClientHandler --> ClientDAO
+ClientHandler --> CreditDAO
+ClientHandler --> PaymentDAO
+ClientHandler --> User
+
+' DAO зависимости
+UserDAO ..> DatabaseConnection : <<uses>>
+ClientDAO ..> DatabaseConnection : <<uses>>
+CreditDAO ..> DatabaseConnection : <<uses>>
+PaymentDAO ..> DatabaseConnection : <<uses>>
+
+' Модельные зависимости
+User --> Role
+Client --> User : registeredBy
+Credit --> Client
+Credit --> User
+Credit --> CreditStatus
+Payment --> Credit
+Payment --> PaymentStatus
+CreditScore --> Client
+ScoreCalculator --> PaymentDAO
+ScoreCalculator --> CreditDAO
+ScoreCalculator ..> CreditScore : <<creates>>
+
+' Наследование акторов (если нужно)
+' Admin --|> User
+' SuperAdmin --|> Admin
+
+@enduml

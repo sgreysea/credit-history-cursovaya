@@ -16,7 +16,7 @@ import com.credithistory.model.ScoreCalculator;
 public class PaymentDAO {
 
 
-    // Получить платёж по ID
+    // получить платеж по id
     public Payment findById(int id) {
         String sql = "SELECT * FROM payments WHERE id = ?";
 
@@ -35,7 +35,7 @@ public class PaymentDAO {
         return null;
     }
 
-    // Создать график платежей для кредита
+    // график платеж для кредита
     public boolean generatePaymentSchedule(int creditId, java.math.BigDecimal monthlyPayment,
                                            LocalDate startDate, int termMonths) {
         String sql = "INSERT INTO payments (credit_id, planned_date, planned_amount, status) " +
@@ -73,30 +73,23 @@ public class PaymentDAO {
             int updated = stmt.executeUpdate();
 
             if (updated > 0) {
-                // 1. Находим платёж, чтобы получить credit_id
                 Payment payment = findById(paymentId);
                 if (payment != null) {
-                    // 2. Находим кредит
+
                     CreditDAO creditDAO = new CreditDAO();
                     Credit credit = creditDAO.findById(payment.getCreditId());
 
                     if (credit != null) {
-                        // 3. Проверяем, все ли платежи просрочены/оплачены
                         List<Payment> allPayments = getPaymentsByCreditId(credit.getId());
                         boolean allResolved = allPayments.stream()
                                 .allMatch(p -> p.getStatus() == PaymentStatus.PAID ||
                                         p.getStatus() == PaymentStatus.OVERDUE);
-
-                        // 4. Если все платежи обработаны, но кредит не закрыт — закрываем
                         if (allResolved && credit.getStatus() != CreditStatus.CLOSED) {
                             creditDAO.closeCredit(credit.getId());
                         }
 
-                        // 5. Пересчитываем кредитный рейтинг клиента
                         ScoreCalculator calculator = new ScoreCalculator();
                         int newScore = calculator.calculateScore(credit.getClientId());
-
-                        // 6. Сохраняем новый рейтинг в БД
                         saveCreditRating(credit.getClientId(), newScore);
 
                         System.out.println("Платёж #" + paymentId + " отмечен как просроченный. " +
@@ -112,7 +105,6 @@ public class PaymentDAO {
         }
     }
 
-    // Вспомогательный метод для сохранения рейтинга
     private void saveCreditRating(int clientId, int score) {
         String sql = "INSERT INTO credit_ratings (client_id, score) VALUES (?, ?)";
 
@@ -126,10 +118,6 @@ public class PaymentDAO {
             e.printStackTrace();
         }
     }
-
-    // Вспомогательный метод для сохранения рейтинга
-
-    // Отметить платёж как оплаченный
     public boolean markAsPaid(int paymentId, java.math.BigDecimal actualAmount) {
         String sql = "UPDATE payments SET status = 'PAID', actual_date = ?, actual_amount = ? WHERE id = ?";
 
@@ -147,7 +135,7 @@ public class PaymentDAO {
         }
     }
 
-    // Получить просроченные платежи
+    // het просроченные платежи
     public List<Payment> getOverduePayments() {
         List<Payment> payments = new ArrayList<>();
         String sql = "SELECT * FROM payments WHERE status = 'PENDING' AND planned_date < ? ORDER BY planned_date";
@@ -167,7 +155,7 @@ public class PaymentDAO {
         return payments;
     }
 
-    // Автоматически пометить просроченные платежи
+    // пометить просроченные платежи
     public int markOverduePayments() {
         String sql = "UPDATE payments SET status = 'OVERDUE' " +
                 "WHERE status = 'PENDING' AND planned_date < ?";
@@ -183,7 +171,7 @@ public class PaymentDAO {
         }
     }
 
-    // Получить статистику по платежам клиента
+    // получка статистики по платежам клиента
     public PaymentStatistics getPaymentStatisticsByClientId(int clientId) {
         String sql = "SELECT " +
                 "COUNT(*) as total_payments, " +
@@ -214,7 +202,6 @@ public class PaymentDAO {
         return new PaymentStatistics(0, 0, 0, 0);
     }
 
-    // Вспомогательный метод для маппинга
     private Payment mapResultSetToPayment(ResultSet rs) throws SQLException {
         Payment payment = new Payment();
         payment.setId(rs.getInt("id"));
@@ -233,7 +220,7 @@ public class PaymentDAO {
         return payment;
     }
 
-    // Внутренний класс для статистики платежей
+    // внутр класс для статических платежей платежей
     public static class PaymentStatistics {
         private final int totalPayments;
         private final int paidCount;
@@ -257,7 +244,6 @@ public class PaymentDAO {
             return (onTimeCount * 100.0) / totalPayments;
         }
     }
-    // Добавь в PaymentDAO.java:
     public void updateOverduePayments() {
         String sql = "UPDATE payments SET status = 'OVERDUE' " +
                 "WHERE status = 'PENDING' AND planned_date < CURDATE()";
@@ -273,8 +259,7 @@ public class PaymentDAO {
             e.printStackTrace();
         }
     }
-
-    // Исправь метод getPaymentsByCreditId — добавь расчёт штрафа
+    
     public List<Payment> getPaymentsByCreditId(int creditId) {
         List<Payment> payments = new ArrayList<>();
         String sql = "SELECT * FROM payments WHERE credit_id = ? ORDER BY planned_date";
@@ -291,10 +276,10 @@ public class PaymentDAO {
                 if (payment.getStatus() == PaymentStatus.OVERDUE ||
                         (payment.getStatus() == PaymentStatus.PENDING &&
                                 LocalDate.now().isAfter(payment.getPlannedDate()))) {
-                    // Автоматически обновляем статус
+                    // обновл автом статус
                     if (payment.getStatus() == PaymentStatus.PENDING) {
                         payment.setStatus(PaymentStatus.OVERDUE);
-                        // Обновляем в БД
+                        // обнов бд
                         updatePaymentStatus(payment.getId(), PaymentStatus.OVERDUE);
                     }
                 }
@@ -317,8 +302,9 @@ public class PaymentDAO {
             e.printStackTrace();
         }
     }
+    //ЧТОТО УТТ НЕ РАБОТАЕТ ЕМАЕ ЧЕ ДЕЛАТЬ
     public boolean makeEarlyPayment(int creditId, BigDecimal extraAmount) {
-        // Находим все неоплаченные платежи
+        // все неоплаченные платежи ищем
         List<Payment> pendingPayments = new ArrayList<>();
         String sql = "SELECT * FROM payments WHERE credit_id = ? AND status IN ('PENDING', 'OVERDUE') ORDER BY planned_date";
 
@@ -335,20 +321,17 @@ public class PaymentDAO {
             BigDecimal remaining = extraAmount;
             int monthsPaid = 0;
 
-            // "Закрываем" платежи с конца (уменьшаем срок)
             for (int i = pendingPayments.size() - 1; i >= 0 && remaining.compareTo(BigDecimal.ZERO) > 0; i--) {
                 Payment payment = pendingPayments.get(i);
                 BigDecimal amountWithPenalty = payment.getTotalAmountWithPenalty();
 
                 if (remaining.compareTo(amountWithPenalty) >= 0) {
-                    // Полностью оплачиваем этот платёж
                     markAsPaid(payment.getId(), amountWithPenalty);
                     remaining = remaining.subtract(amountWithPenalty);
                     monthsPaid++;
                 }
             }
 
-            // Уменьшаем срок кредита в таблице credits
             if (monthsPaid > 0) {
                 updateCreditTerm(creditId, monthsPaid);
             }

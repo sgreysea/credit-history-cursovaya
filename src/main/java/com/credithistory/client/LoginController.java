@@ -54,15 +54,12 @@ public class LoginController {
 
                 Role role = Role.valueOf(roleStr);
 
-                // Создаём объект пользователя
                 User currentUser = new User();
                 currentUser.setLogin(login);
                 currentUser.setFullName(fullName);
                 currentUser.setRole(role);
 
                 updateStatus("Вход выполнен успешно!");
-
-                // Открываем главное окно и ПЕРЕДАЁМ соединение
                 Platform.runLater(() -> openMainWindow(currentUser, networkClient));
 
             } else if (response.startsWith("ERROR:")) {
