@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.credithistory.client.PaymentsController"
+      stylesheets="@style.css">
+
+    <padding>
+        <Insets top="15" right="15" bottom="15" left="15"/>
+    </padding>
+
+    <Label fx:id="titleLabel" text="График платежей" styleClass="header"/>
+    <Label fx:id="creditInfoLabel" text="Кредит: "/>
+
+    <TableView fx:id="paymentsTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" text="ID" prefWidth="50"/>
+            <TableColumn fx:id="plannedDateColumn" text="План. дата" prefWidth="100"/>
+            <TableColumn fx:id="plannedAmountColumn" text="План. сумма" prefWidth="100"/>
+            <TableColumn fx:id="statusColumn" text="Статус" prefWidth="100"/>
+            <TableColumn fx:id="actualDateColumn" text="Факт. дата" prefWidth="100"/>
+            <TableColumn fx:id="actualAmountColumn" text="Факт. сумма" prefWidth="100"/>
+            <TableColumn fx:id="penaltyColumn" text="Штраф" prefWidth="80"/>
+            <TableColumn fx:id="totalColumn" text="Итого" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Button text="Оплатить" onAction="#handleMarkAsPaid" styleClass="button-green"/>
+        <Button text="Пропущен" onAction="#handleSkipPayment" styleClass="button-red"/>
+        <Button text="Досрочное погашение" onAction="#handleEarlyPayment" styleClass="button-yellow"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Обновить" onAction="#handleRefresh" styleClass="button-gray"/>
+        <Button text="Закрыть" onAction="#handleClose" styleClass="button-gray"/>
+    </HBox>
+
+    <Label fx:id="statusLabel" text="Готово" styleClass="status-label"/>
+</VBox>

@@ -1,0 +1,138 @@
+/* Общий фон для всех окон */
+.root {
+    -fx-background-color: #f0f0f0;  /* светло-серый */
+}
+
+/* Заголовки */
+.label {
+    -fx-text-fill: #333333;
+}
+
+.label.header {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Поля ввода */
+.text-field, .password-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 4px;
+    -fx-padding: 8px 10px;
+    -fx-font-size: 13px;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #5c8a5c;
+    -fx-border-width: 2px;
+}
+
+/* Кнопки — общий стиль */
+.button {
+    -fx-background-radius: 4px;
+    -fx-padding: 8px 16px;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+/* Зелёная кнопка (основные действия) */
+.button-green {
+    -fx-background-color: #5c8a5c;
+    -fx-text-fill: white;
+}
+
+.button-green:hover {
+    -fx-background-color: #4a7a4a;
+}
+
+.button-green:pressed {
+    -fx-background-color: #3d663d;
+}
+
+/* Жёлтая кнопка (дополнительные действия) */
+.button-yellow {
+    -fx-background-color: #d4a84b;
+    -fx-text-fill: white;
+}
+
+.button-yellow:hover {
+    -fx-background-color: #c0963a;
+}
+
+.button-yellow:pressed {
+    -fx-background-color: #a8822e;
+}
+
+/* Красная кнопка (опасные действия) */
+.button-red {
+    -fx-background-color: #c75d5d;
+    -fx-text-fill: white;
+}
+
+.button-red:hover {
+    -fx-background-color: #b04a4a;
+}
+
+.button-red:pressed {
+    -fx-background-color: #963e3e;
+}
+
+/* Серая кнопка (отмена/закрыть) */
+.button-gray {
+    -fx-background-color: #888888;
+    -fx-text-fill: white;
+}
+
+.button-gray:hover {
+    -fx-background-color: #777777;
+}
+
+/* Таблицы */
+.table-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 4px;
+}
+
+.table-view .column-header {
+    -fx-background-color: #e0e0e0;
+    -fx-border-color: #cccccc;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #333333;
+    -fx-font-weight: bold;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #f8f8f8;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #b8d4b8;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: #333333;
+}
+
+/* Разделители */
+.separator {
+    -fx-background-color: #cccccc;
+}
+
+/* Статусная строка */
+.status-label {
+    -fx-text-fill: #666666;
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+}
+
+/* Панель поиска */
+.search-panel {
+    -fx-background-color: #e8e8e8;
+    -fx-padding: 10px;
+    -fx-background-radius: 4px;
+}

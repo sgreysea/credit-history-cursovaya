@@ -1,0 +1,10 @@
+package com.credithistory.server;
+
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("запуск сервера системы учета кредитных историй...");
+        Server server = new Server();
+        server.start();
+    }
+}
