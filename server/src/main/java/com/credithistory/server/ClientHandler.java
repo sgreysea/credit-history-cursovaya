@@ -17,7 +17,6 @@ public class ClientHandler implements Runnable {
     private BufferedReader in;
     private PrintWriter out;
 
-
     private UserDAO userDAO;
     private ClientDAO clientDAO;
     private CreditDAO creditDAO;
