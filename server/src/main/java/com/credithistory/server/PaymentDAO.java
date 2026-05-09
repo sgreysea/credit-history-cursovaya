@@ -6,6 +6,7 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.RoundingMode;
 
 public class PaymentDAO {
 
@@ -58,71 +59,58 @@ public class PaymentDAO {
     }
 
     public boolean skipPayment(int paymentId) {
-        String sql = "UPDATE payments SET status = 'OVERDUE' WHERE id = ?";
-
+        Payment payment = findById(paymentId);
+        if (payment == null || payment.getStatus() != PaymentStatus.PENDING) {
+            return false;
+        }
+        BigDecimal overdueDebt = payment.getPlannedAmount()
+                .multiply(BigDecimal.valueOf(1.005))
+                .setScale(2, RoundingMode.HALF_UP);
+        String markOverdueSql = "UPDATE payments SET status = 'OVERDUE', actual_date = ?, actual_amount = ?, planned_amount = ? WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, paymentId);
+             PreparedStatement stmt = conn.prepareStatement(markOverdueSql)) {
+            conn.setAutoCommit(false);
+            stmt.setDate(1, Date.valueOf(LocalDate.now()));
+            stmt.setBigDecimal(2, BigDecimal.ZERO);
+            stmt.setBigDecimal(3, overdueDebt);
+            stmt.setInt(4, paymentId);
             int updated = stmt.executeUpdate();
-
-            if (updated > 0) {
-                Payment payment = findById(paymentId);
-                if (payment != null) {
-
-                    CreditDAO creditDAO = new CreditDAO();
-                    Credit credit = creditDAO.findById(payment.getCreditId());
-
-                    if (credit != null) {
-                        List<Payment> allPayments = getPaymentsByCreditId(credit.getId());
-                        boolean allResolved = allPayments.stream()
-                                .allMatch(p -> p.getStatus() == PaymentStatus.PAID ||
-                                        p.getStatus() == PaymentStatus.OVERDUE);
-                        if (allResolved && credit.getStatus() != CreditStatus.CLOSED) {
-                            creditDAO.closeCredit(credit.getId());
-                        }
-
-                        ScoreCalculator calculator = new ScoreCalculator();
-                        int newScore = calculator.calculateScore(credit.getClientId());
-                        saveCreditRating(credit.getClientId(), newScore);
-
-                        System.out.println("Платёж #" + paymentId + " отмечен как просроченный. " +
-                                "Новый рейтинг клиента #" + credit.getClientId() + ": " + newScore);
-                    }
-                }
-                return true;
+            if (updated == 0) {
+                conn.rollback();
+                return false;
             }
-            return false;
+            recalculateFuturePayments(conn, payment.getCreditId(), overdueDebt);
+            conn.commit();
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
 
-    private void saveCreditRating(int clientId, int score) {
-        String sql = "INSERT INTO credit_ratings (client_id, score) VALUES (?, ?)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, clientId);
-            stmt.setInt(2, score);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
     public boolean markAsPaid(int paymentId, BigDecimal actualAmount) {
+        Payment payment = findById(paymentId);
+        if (payment == null || payment.getStatus() == PaymentStatus.PAID) {
+            return false;
+        }
         String sql = "UPDATE payments SET status = 'PAID', actual_date = ?, actual_amount = ? WHERE id = ?";
-
+        BigDecimal extraAmount = actualAmount.subtract(payment.getPlannedAmount());
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
+            conn.setAutoCommit(false);
             stmt.setDate(1, Date.valueOf(LocalDate.now()));
             stmt.setBigDecimal(2, actualAmount);
             stmt.setInt(3, paymentId);
-
-            return stmt.executeUpdate() > 0;
+            if (stmt.executeUpdate() == 0) {
+                conn.rollback();
+                return false;
+            }
+            if (extraAmount.compareTo(BigDecimal.ZERO) != 0) {
+                // Перерасчет остатка: переплата уменьшает будущие суммы, недоплата увеличивает.
+                recalculateFuturePayments(conn, payment.getCreditId(), extraAmount.negate());
+            }
+            conn.commit();
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -253,7 +241,7 @@ public class PaymentDAO {
             e.printStackTrace();
         }
     }
-    
+
     public List<Payment> getPaymentsByCreditId(int creditId) {
         List<Payment> payments = new ArrayList<>();
         String sql = "SELECT * FROM payments WHERE credit_id = ? ORDER BY planned_date";
@@ -265,19 +253,7 @@ public class PaymentDAO {
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
-                Payment payment = mapResultSetToPayment(rs);
-                // Если платёж просрочен, считаем штраф
-                if (payment.getStatus() == PaymentStatus.OVERDUE ||
-                        (payment.getStatus() == PaymentStatus.PENDING &&
-                                LocalDate.now().isAfter(payment.getPlannedDate()))) {
-                    // обновл автом статус
-                    if (payment.getStatus() == PaymentStatus.PENDING) {
-                        payment.setStatus(PaymentStatus.OVERDUE);
-                        // обнов бд
-                        updatePaymentStatus(payment.getId(), PaymentStatus.OVERDUE);
-                    }
-                }
-                payments.add(payment);
+                payments.add(mapResultSetToPayment(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -285,67 +261,67 @@ public class PaymentDAO {
         return payments;
     }
 
-    private void updatePaymentStatus(int paymentId, PaymentStatus status) {
-        String sql = "UPDATE payments SET status = ? WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, status.name());
-            stmt.setInt(2, paymentId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
     //ЧТОТО УТТ НЕ РАБОТАЕТ ЕМАЕ ЧЕ ДЕЛАТЬ
     public boolean makeEarlyPayment(int creditId, BigDecimal extraAmount) {
-        // все неоплаченные платежи ищем
-        List<Payment> pendingPayments = new ArrayList<>();
-        String sql = "SELECT * FROM payments WHERE credit_id = ? AND status IN ('PENDING', 'OVERDUE') ORDER BY planned_date";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, creditId);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                pendingPayments.add(mapResultSetToPayment(rs));
-            }
-
-            BigDecimal remaining = extraAmount;
-            int monthsPaid = 0;
-
-            for (int i = pendingPayments.size() - 1; i >= 0 && remaining.compareTo(BigDecimal.ZERO) > 0; i--) {
-                Payment payment = pendingPayments.get(i);
-                BigDecimal amountWithPenalty = payment.getTotalAmountWithPenalty();
-
-                if (remaining.compareTo(amountWithPenalty) >= 0) {
-                    markAsPaid(payment.getId(), amountWithPenalty);
-                    remaining = remaining.subtract(amountWithPenalty);
-                    monthsPaid++;
-                }
-            }
-
-            if (monthsPaid > 0) {
-                updateCreditTerm(creditId, monthsPaid);
-            }
-
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            recalculateFuturePayments(conn, creditId, extraAmount.negate());
+            conn.commit();
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
-
-    private void updateCreditTerm(int creditId, int monthsPaid) {
-        String sql = "UPDATE credits SET term_months = term_months - ? WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, monthsPaid);
-            stmt.setInt(2, creditId);
-            stmt.executeUpdate();
+    public void recalculateFuturePayments(int creditId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            recalculateFuturePayments(conn, creditId, BigDecimal.ZERO);
+            conn.commit();
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void recalculateFuturePayments(Connection conn, int creditId, BigDecimal debtDelta) throws SQLException {
+        List<Payment> pendingPayments = new ArrayList<>();
+        String selectSQL = "SELECT * FROM payments WHERE credit_id = ? AND status = 'PENDING' ORDER BY planned_date";
+        try (PreparedStatement stmt = conn.prepareStatement(selectSQL)) {
+            stmt.setInt(1, creditId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                pendingPayments.add(mapResultSetToPayment(rs));
+            }
+        }
+        if (pendingPayments.isEmpty()) return;
+
+        BigDecimal totalPending = BigDecimal.ZERO;
+        for (Payment p : pendingPayments) {
+            totalPending = totalPending.add(p.getPlannedAmount());
+        }
+        BigDecimal newTotal = totalPending.add(debtDelta);
+        if (newTotal.compareTo(BigDecimal.ZERO) < 0) {
+            newTotal = BigDecimal.ZERO;
+        }
+
+        BigDecimal count = BigDecimal.valueOf(pendingPayments.size());
+        BigDecimal base = newTotal.divide(count, 2, RoundingMode.DOWN);
+        BigDecimal distributed = base.multiply(count);
+        BigDecimal remainder = newTotal.subtract(distributed);
+
+        String updateSQL = "UPDATE payments SET planned_amount = ? WHERE id = ?";
+        try (PreparedStatement updateStmt = conn.prepareStatement(updateSQL)) {
+            for (int i = 0; i < pendingPayments.size(); i++) {
+                Payment p = pendingPayments.get(i);
+                BigDecimal amount = base;
+                if (i == pendingPayments.size() - 1) {
+                    amount = amount.add(remainder).setScale(2, RoundingMode.HALF_UP);
+                }
+                updateStmt.setBigDecimal(1, amount);
+                updateStmt.setInt(2, p.getId());
+                updateStmt.addBatch();
+            }
+            updateStmt.executeBatch();
         }
     }
 }

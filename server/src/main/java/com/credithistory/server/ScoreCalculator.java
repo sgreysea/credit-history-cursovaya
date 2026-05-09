@@ -100,6 +100,31 @@ public class ScoreCalculator {
         }
     }
 
+    public String getRatingLetter(int score) {
+        if (score >= 700) {
+            return "A";
+        } else if (score >= 500) {
+            return "B";
+        } else if (score >= 350) {
+            return "C";
+        } else if (score >= 200) {
+            return "D";
+        } else {
+            return "E";
+        }
+    }
+
+    public String getRatingColor(int score) {
+        return switch (getRatingLetter(score)) {
+            case "A" -> "#2E7D32";
+            case "B" -> "#4CAF50";
+            case "C" -> "#FF9800";
+            case "D" -> "#F44336";
+            case "E" -> "#B71C1C";
+            default -> "#9E9E9E";
+        };
+    }
+
 
     public String getScoreDescription(int score) {
         if (score >= 750) {

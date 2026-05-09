@@ -9,6 +9,9 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+
 public class Server {
 
     private static final Logger logger = LoggerUtil.getLogger(Server.class);
@@ -18,6 +21,15 @@ public class Server {
     private final ExecutorService pool = Executors.newFixedThreadPool(10);
 
     public void start() {
+        // Запускаем фоновую проверку просрочек
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(() -> {
+            PaymentDAO paymentDAO = new PaymentDAO();
+            int overdueCount = paymentDAO.markOverduePayments();
+            if (overdueCount > 0) {
+                logger.info("Автоматически отмечено просроченных платежей: " + overdueCount);
+            }
+        }, 0, 1, java.util.concurrent.TimeUnit.HOURS);
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             logger.info("Сервер запущен на порту "+ PORT);
 

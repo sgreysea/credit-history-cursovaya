@@ -137,4 +137,41 @@ public class ClientDAO {
         client.setCreatedAt(rs.getTimestamp("created_at"));
         return client;
     }
+    public ClientStatistics getClientStatistics(int clientId) {
+        String sql = "SELECT " +
+                "c.id, c.full_name, c.created_at, " +
+                "(SELECT COUNT(*) FROM credits WHERE client_id = c.id) as total_credits, " +
+                "(SELECT COUNT(*) FROM credits WHERE client_id = c.id AND status = 'ACTIVE') as active_credits, " +
+                "(SELECT COUNT(*) FROM credits WHERE client_id = c.id AND status = 'CLOSED') as closed_credits, " +
+                "(SELECT COUNT(*) FROM payments p JOIN credits cr ON p.credit_id = cr.id WHERE cr.client_id = c.id AND p.status = 'PAID') as total_paid, " +
+                "(SELECT COUNT(*) FROM payments p JOIN credits cr ON p.credit_id = cr.id WHERE cr.client_id = c.id AND p.status = 'PAID' AND p.actual_date <= p.planned_date) as paid_ontime, " +
+                "(SELECT COUNT(*) FROM payments p JOIN credits cr ON p.credit_id = cr.id WHERE cr.client_id = c.id AND p.status = 'OVERDUE') as total_overdue, " +
+                "(SELECT COUNT(*) FROM payments p JOIN credits cr ON p.credit_id = cr.id WHERE cr.client_id = c.id AND p.actual_amount > p.planned_amount) as early_payments " +
+                "FROM clients c WHERE c.id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, clientId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                ClientStatistics stats = new ClientStatistics();
+                stats.setClientId(rs.getInt("id"));
+                stats.setFullName(rs.getString("full_name"));
+                stats.setCreatedAt(rs.getTimestamp("created_at"));
+                stats.setTotalCredits(rs.getInt("total_credits"));
+                stats.setActiveCredits(rs.getInt("active_credits"));
+                stats.setClosedCredits(rs.getInt("closed_credits"));
+                stats.setTotalPaid(rs.getInt("total_paid"));
+                stats.setPaidOnTime(rs.getInt("paid_ontime"));
+                stats.setTotalOverdue(rs.getInt("total_overdue"));
+                stats.setEarlyPayments(rs.getInt("early_payments"));
+                return stats;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

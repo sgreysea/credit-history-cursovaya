@@ -248,4 +248,27 @@ public class UserDAO {
         }
         return 0;
     }
+
+    public boolean updateUserProfileAndRole(int userId, String login, String fullName, Role role, String password) {
+        boolean hasPassword = password != null && !password.isBlank();
+        String sql = hasPassword
+                ? "UPDATE users SET login = ?, full_name = ?, role = ?, password = ? WHERE id = ?"
+                : "UPDATE users SET login = ?, full_name = ?, role = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, login);
+            stmt.setString(2, fullName);
+            stmt.setString(3, role.name());
+            if (hasPassword) {
+                stmt.setString(4, password);
+                stmt.setInt(5, userId);
+            } else {
+                stmt.setInt(4, userId);
+            }
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
