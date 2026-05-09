@@ -1,11 +1,12 @@
 package com.credithistory.client;
-
+import javafx.scene.control.TableCell;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.TableCell;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -63,6 +64,35 @@ public class ClientController {
         fullNameColumn.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         passportColumn.setCellValueFactory(new PropertyValueFactory<>("passport"));
         phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
+
+        // Колонка "Добавил сотрудник"
+        TableColumn<Client, String> addedByColumn = new TableColumn<>("Добавил сотрудник");
+        addedByColumn.setCellValueFactory(cellData -> {
+            int regBy = cellData.getValue().getRegisteredBy();
+            return javafx.beans.binding.Bindings.createStringBinding(() -> String.valueOf(regBy));
+        });
+        clientsTable.getColumns().add(addedByColumn);
+
+        // Колонка с кнопкой "Биография"
+        TableColumn<Client, Void> bioColumn = new TableColumn<>("Биография");
+        bioColumn.setCellFactory(col -> {
+            TableCell<Client, Void> cell = new TableCell<>() {
+                private final Button btn = new Button("📋 Биография");
+                {
+                    btn.setOnAction(e -> {
+                        Client client = getTableView().getItems().get(getIndex());
+                        showClientBio(client.getId());
+                    });
+                }
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : btn);
+                }
+            };
+            return cell;
+        });
+        clientsTable.getColumns().add(bioColumn);
         ratingColumn.setCellValueFactory(cellData ->
                 javafx.beans.binding.Bindings.createObjectBinding(() -> 500)
         );
@@ -109,6 +139,7 @@ public class ClientController {
                                 client.setFullName(fields[1]);
                                 client.setPassport(fields[2]);
                                 client.setPhone(fields[3]);
+                                client.setRegisteredBy(Integer.parseInt(fields[4]));
                                 clientsList.add(client);
                             }
                         }
@@ -259,6 +290,43 @@ public class ClientController {
         showAlert("Закрытие кредита #" + selected.getId());
     }
 
+
+    private void showClientBio(int clientId) {
+        if (networkClient == null || !networkClient.isConnected()) {
+            showAlert("Нет подключения к серверу");
+            return;
+        }
+
+        new Thread(() -> {
+            String serverResponse = networkClient.sendCommand("get_client_bio " + clientId);
+
+            Platform.runLater(() -> {
+                if (serverResponse != null && serverResponse.startsWith("OK:")) {
+                    try {
+                        String data = serverResponse.substring(3);
+                        String[] parts = data.split("\\|");
+
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-bio.fxml"));
+                        Stage stage = new Stage();
+                        stage.setScene(new Scene(loader.load()));
+
+                        ClientBioController controller = loader.getController();
+                        controller.setClientData(parts);
+
+                        stage.setTitle("Биография клиента");
+                        stage.initModality(Modality.WINDOW_MODAL);
+                        stage.initOwner(clientsTable.getScene().getWindow());
+                        stage.show();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        showAlert("Ошибка открытия окна биографии");
+                    }
+                } else {
+                    showAlert("Ошибка получения данных: " + serverResponse);
+                }
+            });
+        }).start();
+    }
     private void updateStatus(String message) {
         Platform.runLater(() -> statusLabel.setText(message));
     }
@@ -355,4 +423,5 @@ public class ClientController {
             showAlert("Ошибка открытия окна платежей");
         }
     }
+
 }

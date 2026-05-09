@@ -31,9 +31,9 @@
     <HBox spacing="10" alignment="CENTER_LEFT">
         <Button text="Оплатить" onAction="#handleMarkAsPaid" styleClass="button-green"/>
         <Button text="Пропущен" onAction="#handleSkipPayment" styleClass="button-red"/>
-        <Button text="Досрочное погашение" onAction="#handleEarlyPayment" styleClass="button-yellow"/>
+
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Обновить" onAction="#handleRefresh" styleClass="button-gray"/>
+
         <Button text="Закрыть" onAction="#handleClose" styleClass="button-gray"/>
     </HBox>
 
