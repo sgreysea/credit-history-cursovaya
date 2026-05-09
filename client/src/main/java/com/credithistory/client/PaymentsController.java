@@ -23,9 +23,11 @@ public class PaymentsController {
     @FXML private TableColumn<Payment, String> statusColumn;
     @FXML private TableColumn<Payment, LocalDate> actualDateColumn;
     @FXML private TableColumn<Payment, BigDecimal> actualAmountColumn;
-    @FXML private TableColumn<Payment, BigDecimal> penaltyColumn;
     @FXML private TableColumn<Payment, BigDecimal> totalColumn;
     @FXML private Label statusLabel;
+    @FXML private Button markPaidButton;
+    @FXML private Button skipButton;
+    @FXML private Button refreshButton;
 
     private Credit credit;
     private NetworkClient networkClient;
@@ -38,7 +40,6 @@ public class PaymentsController {
     }
 
     private void updateCreditInfo() {
-        // Запросим актуальные данные о кредите с сервера
         new Thread(() -> {
             String response = networkClient.sendCommand("get_credit_info " + credit.getId());
             Platform.runLater(() -> {
@@ -71,10 +72,6 @@ public class PaymentsController {
 
         actualDateColumn.setCellValueFactory(new PropertyValueFactory<>("actualDate"));
         actualAmountColumn.setCellValueFactory(new PropertyValueFactory<>("actualAmount"));
-
-        penaltyColumn.setCellValueFactory(cellData ->
-                javafx.beans.binding.Bindings.createObjectBinding(() ->
-                        cellData.getValue().getPenalty()));
 
         totalColumn.setCellValueFactory(cellData ->
                 javafx.beans.binding.Bindings.createObjectBinding(() ->
@@ -120,6 +117,17 @@ public class PaymentsController {
                 } else {
                     updateStatus("Ошибка загрузки: " + response);
                 }
+
+                // Скрываем кнопки, если кредит закрыт
+                if (credit.getStatus() == CreditStatus.CLOSED) {
+                    markPaidButton.setVisible(false);
+                    skipButton.setVisible(false);
+                    refreshButton.setVisible(false);
+                } else {
+                    markPaidButton.setVisible(true);
+                    skipButton.setVisible(true);
+                    refreshButton.setVisible(true);
+                }
             });
         }).start();
     }
@@ -143,6 +151,11 @@ public class PaymentsController {
             return;
         }
 
+        if (selected.getStatus() == PaymentStatus.OVERDUE) {
+            showAlert("Этот платёж просрочен. Воспользуйтесь досрочным погашением");
+            return;
+        }
+
         TextInputDialog dialog = new TextInputDialog(selected.getPlannedAmount().toString());
         dialog.setTitle("Оплата платежа");
         dialog.setHeaderText("Введите сумму оплаты");
@@ -163,7 +176,6 @@ public class PaymentsController {
                             loadPayments();
                             updateCreditInfo();
 
-                            // Показываем сообщение о результате
                             String[] parts = response.split(":");
                             if (parts.length > 1) {
                                 updateStatus(parts[1]);
@@ -218,40 +230,6 @@ public class PaymentsController {
                 }).start();
             }
         });
-    }
-
-    @FXML
-    private void handleEarlyPayment() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Досрочное погашение");
-        dialog.setHeaderText("Внесите сумму для досрочного погашения");
-        dialog.setContentText("Сумма:");
-
-        Optional<String> result = dialog.showAndWait();
-        if (result.isPresent()) {
-            try {
-                BigDecimal amount = new BigDecimal(result.get());
-
-                new Thread(() -> {
-                    String response = networkClient.sendCommand(
-                            "early_payment " + credit.getId() + " " + amount
-                    );
-
-                    Platform.runLater(() -> {
-                        if (response != null && response.startsWith("OK:")) {
-                            loadPayments();
-                            updateCreditInfo();
-                            String[] parts = response.split(":");
-                            updateStatus(parts.length > 1 ? parts[1] : "Досрочное погашение выполнено");
-                        } else {
-                            showAlert("Ошибка: " + response);
-                        }
-                    });
-                }).start();
-            } catch (NumberFormatException e) {
-                showAlert("Неверный формат суммы");
-            }
-        }
     }
 
     @FXML

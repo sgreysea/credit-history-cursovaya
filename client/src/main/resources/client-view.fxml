@@ -31,7 +31,7 @@
     </HBox>
 
     <!-- Таблица клиентов -->
-    <Label text="Клиенты банка:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+    <Label text="клиенты банка:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
     <TableView fx:id="clientsTable" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="idColumn" text="ID" prefWidth="50"/>
@@ -50,12 +50,14 @@
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="Кредитная история" onAction="#handleShowCreditHistory" styleClass="button-gray"/>
         <Button text="Оформить кредит" onAction="#handleAddCredit" styleClass="button-green"/>
+        <Button fx:id="statsButton" text="Статистика сотрудников" onAction="#handleShowStats" styleClass="button-blue"/>
+        <Button fx:id="addUserButton" text="Сотрудники банка" onAction="#handleAddUser" visible="false"/>
     </HBox>
 
     <Separator/>
 
     <!-- Таблица кредитов -->
-    <Label fx:id="selectedClientLabel" text="Кредиты клиента: не выбран"
+    <Label fx:id="selectedClientLabel" text="кредиты клиента: не выбран"
            style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
     <TableView fx:id="creditsTable" VBox.vgrow="ALWAYS">
         <columns>
@@ -70,8 +72,9 @@
 
     <!-- Кнопки управления кредитами -->
     <HBox spacing="10" alignment="CENTER_LEFT">
-        <Button text="График платежей" onAction="#handleShowPayments" styleClass="button-green"/>
-        <Button text="Закрыть кредит" onAction="#handleCloseCredit" styleClass="button-yellow"/>
+        <Button fx:id="addCreditButton" text="Оформить кредит" onAction="#handleAddCredit" styleClass="button-green"/>
+        <Button fx:id="closeCreditButton" text="Закрыть кредит" onAction="#handleCloseCredit" styleClass="button-yellow"/>
+        <Button fx:id="showPaymentsButton" text="График платежей" onAction="#handleShowPayments" styleClass="button-green"/>
     </HBox>
 
     <!-- Статусная строка -->

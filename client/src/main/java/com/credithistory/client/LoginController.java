@@ -49,13 +49,15 @@ public class LoginController {
             }
 
             if (response.startsWith("OK:")) {
-                String[] parts = response.split(":");
-                String roleStr = parts[1];
-                String fullName = parts.length > 2 ? parts[2] : login;
+                String[] parts = response.split(":", 4);
+                int userId = Integer.parseInt(parts[1]);
+                String roleStr = parts[2];
+                String fullName = parts.length > 3 ? parts[3] : login;
 
                 Role role = Role.valueOf(roleStr);
 
                 User currentUser = new User();
+                currentUser.setId(userId);
                 currentUser.setLogin(login);
                 currentUser.setFullName(fullName);
                 currentUser.setRole(role);

@@ -1,30 +1,31 @@
 /* Общий фон для всех окон */
 .root {
-    -fx-background-color: #f0f0f0;  /* светло-серый */
+    -fx-background-color: #F0FFF0;
 }
 
 /* Заголовки */
 .label {
-    -fx-text-fill: #333333;
+    -fx-text-fill: #2e3b2e;
 }
 
 .label.header {
     -fx-font-size: 20px;
     -fx-font-weight: bold;
-    -fx-text-fill: #2c3e50;
+    -fx-text-fill: #1e2e1e;
 }
 
 /* Поля ввода */
 .text-field, .password-field {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #cccccc;
+    -fx-background-color: #d3d9d4;
+    -fx-text-fill: #1e2e1e;
+    -fx-border-color: #8a9a8a;
     -fx-border-radius: 4px;
     -fx-padding: 8px 10px;
     -fx-font-size: 13px;
 }
 
 .text-field:focused, .password-field:focused {
-    -fx-border-color: #5c8a5c;
+    -fx-border-color: #5a7a5a;
     -fx-border-width: 2px;
 }
 
@@ -39,100 +40,138 @@
 
 /* Зелёная кнопка (основные действия) */
 .button-green {
-    -fx-background-color: #5c8a5c;
+    -fx-background-color: #6b8e6b;
     -fx-text-fill: white;
 }
 
 .button-green:hover {
-    -fx-background-color: #4a7a4a;
+    -fx-background-color: #5a7a5a;
 }
 
 .button-green:pressed {
-    -fx-background-color: #3d663d;
+    -fx-background-color: #4a6a4a;
 }
 
-/* Жёлтая кнопка (дополнительные действия) */
+/* Жёлтая кнопка (второстепенные) — оставим тёплый оттенок */
 .button-yellow {
-    -fx-background-color: #d4a84b;
+    -fx-background-color: #b0a080;
     -fx-text-fill: white;
 }
 
 .button-yellow:hover {
-    -fx-background-color: #c0963a;
+    -fx-background-color: #9a8a6a;
 }
 
 .button-yellow:pressed {
-    -fx-background-color: #a8822e;
+    -fx-background-color: #7a6a4a;
 }
 
-/* Красная кнопка (опасные действия) */
+/* Розовая кнопка */
+.button-pink {
+    -fx-background-color: #c08090;
+    -fx-text-fill: white;
+}
+
+.button-pink:hover {
+    -fx-background-color: #a07080;
+}
+
+.button-pink:pressed {
+    -fx-background-color: #806070;
+}
+
+/* Бордовая кнопка */
 .button-red {
-    -fx-background-color: #c75d5d;
+    -fx-background-color: #7d5a5a;
     -fx-text-fill: white;
 }
 
 .button-red:hover {
-    -fx-background-color: #b04a4a;
+    -fx-background-color: #6a4a4a;
 }
 
 .button-red:pressed {
-    -fx-background-color: #963e3e;
+    -fx-background-color: #4a2a2a;
 }
 
-/* Серая кнопка (отмена/закрыть) */
+/* Серая кнопка */
 .button-gray {
-    -fx-background-color: #888888;
+    -fx-background-color: #8a9a8a;
     -fx-text-fill: white;
 }
 
 .button-gray:hover {
-    -fx-background-color: #777777;
+    -fx-background-color: #7a8a7a;
 }
 
 /* Таблицы */
 .table-view {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #cccccc;
+    -fx-background-color: #c0c8c0;
+    -fx-border-color: #8a9a8a;
     -fx-border-radius: 4px;
 }
 
 .table-view .column-header {
-    -fx-background-color: #e0e0e0;
-    -fx-border-color: #cccccc;
+    -fx-background-color: #a0a8a0;
+    -fx-border-color: #8a9a8a;
 }
 
 .table-view .column-header .label {
-    -fx-text-fill: #333333;
+    -fx-text-fill: #1e2e1e;
     -fx-font-weight: bold;
 }
 
 .table-row-cell:odd {
-    -fx-background-color: #f8f8f8;
+    -fx-background-color: #d0d8d0;
 }
 
 .table-row-cell:selected {
-    -fx-background-color: #b8d4b8;
+    -fx-background-color: #8a9a8a;
 }
 
 .table-row-cell:selected .text {
-    -fx-fill: #333333;
+    -fx-fill: #1e2e1e;
 }
 
 /* Разделители */
 .separator {
-    -fx-background-color: #cccccc;
+    -fx-background-color: #8a9a8a;
 }
 
 /* Статусная строка */
 .status-label {
-    -fx-text-fill: #666666;
+    -fx-text-fill: #3a4a3a;
     -fx-font-size: 12px;
     -fx-font-style: italic;
 }
 
 /* Панель поиска */
 .search-panel {
-    -fx-background-color: #e8e8e8;
+    -fx-background-color: #b0b8b0;
     -fx-padding: 10px;
     -fx-background-radius: 4px;
+}
+.table-cell.rating-a .text,
+.table-row-cell:selected .table-cell.rating-a .text {
+    -fx-fill: #2E7D32;
+}
+
+.table-cell.rating-b .text,
+.table-row-cell:selected .table-cell.rating-b .text {
+    -fx-fill: #4CAF50;
+}
+
+.table-cell.rating-c .text,
+.table-row-cell:selected .table-cell.rating-c .text {
+    -fx-fill: #FF9800;
+}
+
+.table-cell.rating-d .text,
+.table-row-cell:selected .table-cell.rating-d .text {
+    -fx-fill: #F44336;
+}
+
+.table-cell.rating-e .text,
+.table-row-cell:selected .table-cell.rating-e .text {
+    -fx-fill: #B71C1C;
 }

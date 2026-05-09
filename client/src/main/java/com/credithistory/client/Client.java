@@ -13,6 +13,9 @@ public class Client implements Serializable {
     private String address;
     private int registeredBy;
     private Timestamp createdAt;
+    private String ratingLetter;
+    public String getRatingLetter() { return ratingLetter; }
+    public void setRatingLetter(String ratingLetter) { this.ratingLetter = ratingLetter; }
 
     public Client() {}
 

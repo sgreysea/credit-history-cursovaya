@@ -50,9 +50,9 @@ public class ClientBioController {
         }
 
         // Устанавливаем букву рейтинга
-        char rating = data[9].charAt(0);
+        String rating = data[9];
         String color = data[10];
-        ratingLetterLabel.setText(String.valueOf(rating));
+        ratingLetterLabel.setText(rating);
         ratingLetterLabel.setStyle("-fx-font-size: 48; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
     }
 

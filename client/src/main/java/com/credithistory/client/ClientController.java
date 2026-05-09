@@ -1,22 +1,25 @@
 package com.credithistory.client;
-import javafx.scene.control.TableCell;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.TableCell;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.*;
+import java.util.Base64;
 
 public class ClientController {
 
@@ -27,7 +30,12 @@ public class ClientController {
     @FXML private TableColumn<Client, String> fullNameColumn;
     @FXML private TableColumn<Client, String> passportColumn;
     @FXML private TableColumn<Client, String> phoneColumn;
-    @FXML private TableColumn<Client, Integer> ratingColumn;
+    @FXML private TableColumn<Client, String> ratingColumn;
+    @FXML private Button addCreditButton;
+    @FXML private Button closeCreditButton;
+    @FXML private Button showPaymentsButton;
+    @FXML private Button statsButton;
+    @FXML private Button addUserButton;
 
     @FXML private Label selectedClientLabel;
     @FXML private TableView<Credit> creditsTable;
@@ -40,14 +48,29 @@ public class ClientController {
 
     @FXML private Label statusLabel;
 
-    private NetworkClient networkClient;  // ← ПЕРЕДАЁТСЯ из LoginController
+    private NetworkClient networkClient;
     private User currentUser;
     private ObservableList<Client> clientsList = FXCollections.observableArrayList();
     private ObservableList<Credit> creditsList = FXCollections.observableArrayList();
+    private Map<Integer, String> employeeNames = new HashMap<>();
+    private Map<Integer, String> clientRatings = new HashMap<>();
 
     public void setCurrentUser(User user) {
         this.currentUser = user;
         userInfoLabel.setText("Сотрудник: " + user.getFullName() + " (" + user.getRole().getDisplayName() + ")");
+
+        // Супер-админ не может оформлять/закрывать кредиты
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            addCreditButton.setVisible(false);
+            closeCreditButton.setVisible(false);
+            showPaymentsButton.setVisible(false);
+            addUserButton.setVisible(true);
+        } else {
+            addUserButton.setVisible(false);
+        }
+
+        // Статистика сотрудников только для супер-админа
+        statsButton.setVisible(user.getRole() == Role.SUPER_ADMIN);
     }
 
     public void setNetworkClient(NetworkClient networkClient) {
@@ -68,8 +91,9 @@ public class ClientController {
         // Колонка "Добавил сотрудник"
         TableColumn<Client, String> addedByColumn = new TableColumn<>("Добавил сотрудник");
         addedByColumn.setCellValueFactory(cellData -> {
-            int regBy = cellData.getValue().getRegisteredBy();
-            return javafx.beans.binding.Bindings.createStringBinding(() -> String.valueOf(regBy));
+            Client c = cellData.getValue();
+            String name = employeeNames.getOrDefault(c.getRegisteredBy(), String.valueOf(c.getRegisteredBy()));
+            return javafx.beans.binding.Bindings.createStringBinding(() -> name);
         });
         clientsTable.getColumns().add(addedByColumn);
 
@@ -93,9 +117,36 @@ public class ClientController {
             return cell;
         });
         clientsTable.getColumns().add(bioColumn);
-        ratingColumn.setCellValueFactory(cellData ->
-                javafx.beans.binding.Bindings.createObjectBinding(() -> 500)
-        );
+
+        // Колонка "Рейтинг" — цветная буква из кэша clientRatings
+        ratingColumn.setCellValueFactory(cellData -> {
+            Client c = cellData.getValue();
+            String letter = clientRatings.getOrDefault(c.getId(), "?");
+            return javafx.beans.binding.Bindings.createStringBinding(() -> letter);
+        });
+        ratingColumn.setCellFactory(col -> new TableCell<Client, String>() {
+            @Override
+            protected void updateItem(String letter, boolean empty) {
+                super.updateItem(letter, empty);
+                getStyleClass().removeAll("rating-a", "rating-b", "rating-c", "rating-d", "rating-e", "rating-unknown");
+                if (empty || letter == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    String styleClass = switch (letter) {
+                        case "A" -> "rating-a";
+                        case "B" -> "rating-b";
+                        case "C" -> "rating-c";
+                        case "D" -> "rating-d";
+                        case "E" -> "rating-e";
+                        default -> "rating-unknown";
+                    };
+                    setText(letter);
+                    getStyleClass().add(styleClass);
+                    setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+                }
+            }
+        });
 
         clientsTable.setItems(clientsList);
 
@@ -106,11 +157,20 @@ public class ClientController {
         creditDateColumn.setCellValueFactory(new PropertyValueFactory<>("issueDate"));
         creditStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
 
+        // Колонка "Добавил кредит"
+        TableColumn<Credit, String> creditAddedByColumn = new TableColumn<>("Добавил кредит");
+        creditAddedByColumn.setCellValueFactory(cellData -> {
+            Credit c = cellData.getValue();
+            String name = employeeNames.getOrDefault(c.getUserId(), String.valueOf(c.getUserId()));
+            return javafx.beans.binding.Bindings.createStringBinding(() -> name);
+        });
+        creditsTable.getColumns().add(creditAddedByColumn);
+
         creditsTable.setItems(creditsList);
 
         clientsTable.getSelectionModel().selectedItemProperty().addListener((obs, old, newClient) -> {
             if (newClient != null) {
-                selectedClientLabel.setText("Кредиты клиента: " + newClient.getFullName());
+                selectedClientLabel.setText("кредиты клиента: " + newClient.getFullName());
                 loadCreditsForClient(newClient.getId());
             }
         });
@@ -127,19 +187,24 @@ public class ClientController {
 
             Platform.runLater(() -> {
                 clientsList.clear();
+                employeeNames.clear();
+                clientRatings.clear();
                 if (response != null && response.startsWith("OK:")) {
                     String data = response.substring(3);
                     if (!data.isEmpty()) {
                         String[] items = data.split(";");
                         for (String item : items) {
                             String[] fields = item.split("\\|");
-                            if (fields.length >= 4) {
+                            if (fields.length >= 8) {
                                 Client client = new Client();
                                 client.setId(Integer.parseInt(fields[0]));
                                 client.setFullName(fields[1]);
                                 client.setPassport(fields[2]);
                                 client.setPhone(fields[3]);
                                 client.setRegisteredBy(Integer.parseInt(fields[4]));
+                                client.setRatingLetter(fields[7]);
+                                employeeNames.put(Integer.parseInt(fields[4]), fields[5]);
+                                clientRatings.put(client.getId(), fields[7]);
                                 clientsList.add(client);
                             }
                         }
@@ -153,9 +218,7 @@ public class ClientController {
     }
 
     private void loadCreditsForClient(int clientId) {
-        if (networkClient == null || !networkClient.isConnected()) {
-            return;
-        }
+        if (networkClient == null || !networkClient.isConnected()) return;
 
         new Thread(() -> {
             String response = networkClient.sendCommand("get_credits " + clientId);
@@ -168,7 +231,7 @@ public class ClientController {
                         String[] items = data.split(";");
                         for (String item : items) {
                             String[] fields = item.split("\\|");
-                            if (fields.length >= 7) {
+                            if (fields.length >= 9) {
                                 Credit credit = new Credit();
                                 credit.setId(Integer.parseInt(fields[0]));
                                 credit.setClientId(Integer.parseInt(fields[1]));
@@ -177,6 +240,8 @@ public class ClientController {
                                 credit.setInterestRate(new BigDecimal(fields[4]));
                                 credit.setIssueDate(LocalDate.parse(fields[5]));
                                 credit.setStatus(CreditStatus.valueOf(fields[6]));
+                                credit.setUserId(Integer.parseInt(fields[7]));
+                                employeeNames.put(Integer.parseInt(fields[7]), fields[8]);
                                 creditsList.add(credit);
                             }
                         }
@@ -193,12 +258,14 @@ public class ClientController {
 
     @FXML
     private void handleSearch() {
-        String query = searchField.getText().trim();
+        // Заглушка — поиск на стороне клиента
+        String query = searchField.getText().trim().toLowerCase();
         if (query.isEmpty()) {
             loadClients();
             return;
         }
-
+        clientsList.clear();
+        // TODO: реализовать поиск через сервер
     }
 
     @FXML
@@ -213,7 +280,6 @@ public class ClientController {
             networkClient.sendCommand("logout");
             networkClient.close();
         }
-
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/login.fxml"));
             Scene scene = new Scene(loader.load());
@@ -223,6 +289,11 @@ public class ClientController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @FXML
+    private void handleAddUser() {
+        showUsersManagementDialog();
     }
 
     @FXML
@@ -247,27 +318,25 @@ public class ClientController {
             showAlert("Выберите клиента для удаления");
             return;
         }
-
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Подтверждение");
         confirm.setHeaderText("Удалить клиента?");
-        confirm.setContentText("Вы уверены, что хотите удалить клиента " + selected.getFullName() + "?");
-
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            new Thread(() -> {
-                String response = networkClient.sendCommand("delete_client " + selected.getId());
-
-                Platform.runLater(() -> {
-                    if (response != null && response.startsWith("OK:")) {
-                        loadClients();
-                        updateStatus("Клиент удалён");
-                    } else {
-                        showAlert("Ошибка удаления: " + response);
-                    }
-                });
-            }).start();
-        }
+        confirm.setContentText("Вы уверены?");
+        confirm.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                new Thread(() -> {
+                    String response = networkClient.sendCommand("delete_client " + selected.getId());
+                    Platform.runLater(() -> {
+                        if (response != null && response.startsWith("OK:")) {
+                            loadClients();
+                            updateStatus("Клиент удалён");
+                        } else {
+                            showAlert("Ошибка: " + response);
+                        }
+                    });
+                }).start();
+            }
+        });
     }
 
     @FXML
@@ -277,7 +346,7 @@ public class ClientController {
             showAlert("Выберите клиента");
             return;
         }
-        showAlert("Кредитная история клиента: " + selected.getFullName());
+        showClientBio(selected.getId());
     }
 
     @FXML
@@ -287,59 +356,102 @@ public class ClientController {
             showAlert("Выберите кредит для закрытия");
             return;
         }
-        showAlert("Закрытие кредита #" + selected.getId());
+        if (selected.getStatus() == CreditStatus.CLOSED) {
+            showAlert("Кредит уже закрыт");
+            return;
+        }
+        new Thread(() -> {
+            String response = networkClient.sendCommand("close_credit " + selected.getId());
+            Platform.runLater(() -> {
+                if (response != null && response.startsWith("OK:")) {
+                    loadCreditsForClient(selected.getClientId());
+                    updateStatus("Кредит закрыт");
+                } else {
+                    showAlert("Ошибка: " + response);
+                }
+            });
+        }).start();
     }
-
 
     private void showClientBio(int clientId) {
         if (networkClient == null || !networkClient.isConnected()) {
-            showAlert("Нет подключения к серверу");
+            showAlert("Нет подключения");
             return;
         }
-
         new Thread(() -> {
-            String serverResponse = networkClient.sendCommand("get_client_bio " + clientId);
-
+            String resp = networkClient.sendCommand("get_client_bio " + clientId);
             Platform.runLater(() -> {
-                if (serverResponse != null && serverResponse.startsWith("OK:")) {
+                if (resp != null && resp.startsWith("OK:")) {
                     try {
-                        String data = serverResponse.substring(3);
-                        String[] parts = data.split("\\|");
-
+                        String[] parts = resp.substring(3).split("\\|");
                         FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-bio.fxml"));
                         Stage stage = new Stage();
                         stage.setScene(new Scene(loader.load()));
-
-                        ClientBioController controller = loader.getController();
-                        controller.setClientData(parts);
-
-                        stage.setTitle("Биография клиента");
+                        ClientBioController ctrl = loader.getController();
+                        ctrl.setClientData(parts);
+                        stage.setTitle("Биография");
                         stage.initModality(Modality.WINDOW_MODAL);
                         stage.initOwner(clientsTable.getScene().getWindow());
                         stage.show();
                     } catch (IOException e) {
                         e.printStackTrace();
-                        showAlert("Ошибка открытия окна биографии");
                     }
                 } else {
-                    showAlert("Ошибка получения данных: " + serverResponse);
+                    showAlert("Ошибка: " + resp);
                 }
             });
         }).start();
     }
-    private void updateStatus(String message) {
-        Platform.runLater(() -> statusLabel.setText(message));
+
+    @FXML
+    private void handleShowStats() {
+        if (networkClient == null || !networkClient.isConnected()) {
+            showAlert("Нет подключения");
+            return;
+        }
+        new Thread(() -> {
+            String response = networkClient.sendCommand("get_employee_stats");
+            Platform.runLater(() -> {
+                if (response != null && response.startsWith("OK:")) {
+                    String[] rows = response.substring(3).split(";");
+                    TableView<String[]> table = new TableView<>();
+                    String[] cols = {"Сотрудник", "Кредитов оформлено"};
+                    for (int i = 0; i < cols.length; i++) {
+                        final int idx = i + 1;
+                        TableColumn<String[], String> col = new TableColumn<>(cols[i]);
+                        col.setCellValueFactory(cell -> javafx.beans.binding.Bindings.createStringBinding(() -> cell.getValue()[idx]));
+                        table.getColumns().add(col);
+                    }
+                    ObservableList<String[]> list = FXCollections.observableArrayList();
+                    for (String row : rows) list.add(row.split("\\|"));
+                    table.setItems(list);
+                    Stage stage = new Stage();
+                    stage.setTitle("Статистика сотрудников");
+                    stage.initModality(Modality.WINDOW_MODAL);
+                    stage.initOwner(clientsTable.getScene().getWindow());
+                    VBox vbox = new VBox(10, new Label("кредиты по сотрудникам"), table);
+                    vbox.setPadding(new Insets(10));
+                    stage.setScene(new Scene(vbox, 600, 400));
+                    stage.show();
+                } else {
+                    showAlert("Ошибка: " + response);
+                }
+            });
+        }).start();
     }
 
-    private void showAlert(String message) {
+    private void updateStatus(String msg) {
+        Platform.runLater(() -> statusLabel.setText(msg));
+    }
+
+    private void showAlert(String msg) {
         Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Информация");
-            alert.setHeaderText(null);
-            alert.setContentText(message);
-            alert.showAndWait();
+            Alert a = new Alert(Alert.AlertType.INFORMATION, msg, ButtonType.OK);
+            a.setHeaderText(null);
+            a.showAndWait();
         });
     }
+
     private void showClientDialog(Client client) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-dialog.fxml"));
@@ -348,30 +460,186 @@ public class ClientController {
             stage.setTitle(client == null ? "Добавить клиента" : "Редактировать клиента");
             stage.initModality(Modality.WINDOW_MODAL);
             stage.initOwner(clientsTable.getScene().getWindow());
-
-            ClientDialogController controller = loader.getController();
-            controller.setNetworkClient(networkClient);
-            controller.setCurrentUserId(currentUser.getId());
-            controller.setClient(client);
-
+            ClientDialogController ctrl = loader.getController();
+            ctrl.setNetworkClient(networkClient);
+            ctrl.setCurrentUserId(currentUser.getId());
+            ctrl.setClient(client);
             stage.showAndWait();
-
-            if (controller.isSaved()) {
-                loadClients();  // Обновляем таблицу
-            }
+            if (ctrl.isSaved()) loadClients();
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert("Ошибка открытия диалога");
         }
     }
+
+    private void showUsersManagementDialog() {
+        TableView<String[]> table = new TableView<>();
+        ObservableList<String[]> users = FXCollections.observableArrayList();
+        String[] headers = {"ID", "Логин", "ФИО", "Роль", "Активен"};
+        for (int i = 0; i < headers.length; i++) {
+            final int idx = i;
+            TableColumn<String[], String> col = new TableColumn<>(headers[i]);
+            col.setCellValueFactory(cell ->
+                    javafx.beans.binding.Bindings.createStringBinding(() -> cell.getValue()[idx]));
+            col.setPrefWidth(i == 2 ? 220 : 120);
+            table.getColumns().add(col);
+        }
+        table.setItems(users);
+
+        Runnable loadUsers = () -> new Thread(() -> {
+            String response = networkClient.sendCommand("get_users");
+            Platform.runLater(() -> {
+                users.clear();
+                if (response != null && response.startsWith("OK:")) {
+                    String body = response.substring(3);
+                    if (!body.isBlank()) {
+                        for (String row : body.split(";")) {
+                            String[] fields = row.split("\\|", -1);
+                            if (fields.length >= 5) users.add(fields);
+                        }
+                    }
+                } else {
+                    showAlert("Ошибка загрузки пользователей: " + response);
+                }
+            });
+        }).start();
+
+        Button refreshBtn = new Button("Обновить");
+        refreshBtn.setOnAction(e -> loadUsers.run());
+
+        Button addBtn = new Button("Добавить");
+        addBtn.setOnAction(e -> showAddUserDialog(loadUsers));
+
+        Button editBtn = new Button("Редактировать");
+        editBtn.setOnAction(e -> {
+            String[] selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("Выберите сотрудника");
+                return;
+            }
+            showEditUserDialog(selected, loadUsers);
+        });
+
+        Button deleteBtn = new Button("Удалить");
+        deleteBtn.setOnAction(e -> {
+            String[] selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("Выберите сотрудника");
+                return;
+            }
+            int userId = Integer.parseInt(selected[0]);
+            new Thread(() -> {
+                String response = networkClient.sendCommand("delete_user " + userId);
+                Platform.runLater(() -> {
+                    if (response != null && response.startsWith("OK:")) {
+                        loadUsers.run();
+                    } else {
+                        showAlert("Ошибка удаления: " + response);
+                    }
+                });
+            }).start();
+        });
+
+        HBox toolbar = new HBox(10, refreshBtn, addBtn, editBtn, deleteBtn);
+        VBox root = new VBox(10, new Label("Управление сотрудниками банка"), toolbar, table);
+        root.setPadding(new Insets(10));
+
+        Stage stage = new Stage();
+        stage.setTitle("Сотрудники банка");
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.initOwner(clientsTable.getScene().getWindow());
+        stage.setScene(new Scene(root, 760, 420));
+        stage.show();
+        loadUsers.run();
+    }
+
+    private void showAddUserDialog(Runnable onSaved) {
+        TextInputDialog loginDialog = new TextInputDialog();
+        loginDialog.setTitle("Новый сотрудник");
+        loginDialog.setHeaderText("Введите логин");
+        String login = loginDialog.showAndWait().orElse("").trim();
+        if (login.isBlank()) return;
+
+        TextInputDialog passDialog = new TextInputDialog();
+        passDialog.setTitle("Новый сотрудник");
+        passDialog.setHeaderText("Введите пароль");
+        String password = passDialog.showAndWait().orElse("");
+        if (password.isBlank()) return;
+
+        TextInputDialog nameDialog = new TextInputDialog();
+        nameDialog.setTitle("Новый сотрудник");
+        nameDialog.setHeaderText("Введите ФИО");
+        String fullName = nameDialog.showAndWait().orElse("").trim();
+        if (fullName.isBlank()) return;
+
+        ChoiceDialog<Role> roleDialog = new ChoiceDialog<>(Role.USER, Role.values());
+        roleDialog.setTitle("Новый сотрудник");
+        roleDialog.setHeaderText("Выберите роль");
+        Role role = roleDialog.showAndWait().orElse(null);
+        if (role == null) return;
+
+        String payload = encodePayload(login, password, fullName, role.name());
+        new Thread(() -> {
+            String response = networkClient.sendCommand("add_user " + payload);
+            Platform.runLater(() -> {
+                if (response != null && response.startsWith("OK:")) {
+                    onSaved.run();
+                } else {
+                    showAlert("Ошибка добавления: " + response);
+                }
+            });
+        }).start();
+    }
+
+    private void showEditUserDialog(String[] selected, Runnable onSaved) {
+        int userId = Integer.parseInt(selected[0]);
+        TextInputDialog loginDialog = new TextInputDialog(selected[1]);
+        loginDialog.setTitle("Редактирование сотрудника");
+        loginDialog.setHeaderText("Изменить логин");
+        String login = loginDialog.showAndWait().orElse("").trim();
+        if (login.isBlank()) return;
+
+        TextInputDialog nameDialog = new TextInputDialog(selected[2]);
+        nameDialog.setTitle("Редактирование сотрудника");
+        nameDialog.setHeaderText("Изменить ФИО");
+        String fullName = nameDialog.showAndWait().orElse("").trim();
+        if (fullName.isBlank()) return;
+
+        ChoiceDialog<Role> roleDialog = new ChoiceDialog<>(Role.valueOf(selected[3]), Role.values());
+        roleDialog.setTitle("Редактирование сотрудника");
+        roleDialog.setHeaderText("Изменить роль");
+        Role role = roleDialog.showAndWait().orElse(null);
+        if (role == null) return;
+
+        TextInputDialog passDialog = new TextInputDialog();
+        passDialog.setTitle("Редактирование сотрудника");
+        passDialog.setHeaderText("Новый пароль (можно оставить пустым)");
+        String password = passDialog.showAndWait().orElse("");
+
+        String payload = encodePayload(String.valueOf(userId), login, fullName, role.name(), password);
+        new Thread(() -> {
+            String response = networkClient.sendCommand("change_role " + payload);
+            Platform.runLater(() -> {
+                if (response != null && response.startsWith("OK:")) {
+                    onSaved.run();
+                } else {
+                    showAlert("Ошибка редактирования: " + response);
+                }
+            });
+        }).start();
+    }
+
+    private String encodePayload(String... fields) {
+        String joined = String.join("|", fields);
+        return Base64.getEncoder().encodeToString(joined.getBytes(StandardCharsets.UTF_8));
+    }
+
     @FXML
     private void handleAddCredit() {
         Client selected = clientsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert("Выберите клиента для оформления кредита");
+            showAlert("Выберите клиента");
             return;
         }
-
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/add-credit.fxml"));
             Stage stage = new Stage();
@@ -379,31 +647,27 @@ public class ClientController {
             stage.setTitle("Оформить кредит");
             stage.initModality(Modality.WINDOW_MODAL);
             stage.initOwner(clientsTable.getScene().getWindow());
-
-            AddCreditController controller = loader.getController();
-            controller.setClient(selected);
-            controller.setNetworkClient(networkClient);
-            controller.setCurrentUserId(currentUser.getId());
-
+            AddCreditController ctrl = loader.getController();
+            ctrl.setClient(selected);
+            ctrl.setNetworkClient(networkClient);
+            ctrl.setCurrentUserId(currentUser.getId());
             stage.showAndWait();
-
-            if (controller.isSaved()) {
+            if (ctrl.isSaved()) {
                 loadCreditsForClient(selected.getId());
-                updateStatus("Кредит оформлен, ID: " + controller.getCreatedCreditId());
+                updateStatus("Кредит оформлен, ID: " + ctrl.getCreatedCreditId());
             }
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert("Ошибка открытия диалога");
         }
     }
+
     @FXML
     private void handleShowPayments() {
         Credit selected = creditsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert("Выберите кредит для просмотра платежей");
+            showAlert("Выберите кредит");
             return;
         }
-
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/payments-view.fxml"));
             Stage stage = new Stage();
@@ -411,17 +675,13 @@ public class ClientController {
             stage.setTitle("График платежей");
             stage.initModality(Modality.WINDOW_MODAL);
             stage.initOwner(clientsTable.getScene().getWindow());
-
-            PaymentsController controller = loader.getController();
-            controller.setCredit(selected);
-            controller.setNetworkClient(networkClient);
-            controller.loadPayments();
-
+            PaymentsController ctrl = loader.getController();
+            ctrl.setCredit(selected);
+            ctrl.setNetworkClient(networkClient);
+            ctrl.loadPayments();
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert("Ошибка открытия окна платежей");
         }
     }
-
 }
