@@ -209,7 +209,46 @@ public class ClientHandler implements Runnable {
         return sb.toString();
     }
 
-    private String handleSearchClients(String[] parts) { return "OK:"; }
+    private String handleSearchClients(String[] parts) {
+        if (currentUser == null) return "ERROR:Не авторизован";
+        if (parts.length < 2) return "ERROR:Укажите поисковый запрос";
+
+        String query = parts[1].toLowerCase();
+        List<Client> allClients = clientDAO.getAllClients();
+        Map<Integer, String> names = new HashMap<>();
+        for (User u : userDAO.getAllUsers()) {
+            String[] np = u.getFullName().split(" ");
+            String sn = np[0];
+            if (np.length > 1) sn += " " + np[1].charAt(0) + ".";
+            if (np.length > 2) sn += np[2].charAt(0) + ".";
+            names.put(u.getId(), sn);
+        }
+
+        List<Client> filtered = new ArrayList<>();
+        for (Client c : allClients) {
+            if (c.getFullName().toLowerCase().contains(query) ||
+                    c.getPassport().toLowerCase().contains(query) ||
+                    (c.getPhone() != null && c.getPhone().contains(query))) {
+                filtered.add(c);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder("OK:");
+        boolean first = true;
+        for (Client c : filtered) {
+            if (!first) sb.append(";");
+            first = false;
+            int creditCnt = creditDAO.countCreditsByClientId(c.getId());
+            String birthYearField = c.getBirthYear() != null ? String.valueOf(c.getBirthYear()) : "";
+            sb.append(c.getId()).append("|").append(c.getFullName()).append("|")
+                    .append(c.getPassport()).append("|").append(c.getPhone() == null ? "-" : c.getPhone()).append("|")
+                    .append(c.getRegisteredBy()).append("|").append(names.getOrDefault(c.getRegisteredBy(), "?")).append("|");
+            int score = scoreCalculator.calculateScore(c.getId());
+            sb.append(score).append("|").append(scoreCalculator.getRatingLetter(score)).append("|")
+                    .append(birthYearField).append("|").append(creditCnt);
+        }
+        return sb.toString();
+    }
 
     private String handleAddClient(String[] commandParts) {
         if (currentUser == null) return "ERROR:Не авторизован";
