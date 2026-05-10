@@ -7,33 +7,45 @@
 
 <VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.credithistory.client.ClientBioController"
-      spacing="15" style="-fx-padding: 20; -fx-background-color: #f5f5f5;">
+      spacing="12" styleClass="bio-root"
+      stylesheets="@style.css">
 
-    <Label text="Биография клиента" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
+    <padding>
+        <Insets top="18" right="18" bottom="18" left="18"/>
+    </padding>
 
-    <GridPane hgap="10" vgap="5">
-        <Label text="ФИО:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-        <Label fx:id="fullNameLabel" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="кредитный рейтинг клиента" styleClass="bio-title"/>
 
-        <Label text="Дата регистрации:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-        <Label fx:id="createdAtLabel" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    <GridPane hgap="10" vgap="6">
+        <Label text="ФИО:" styleClass="bio-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <Label fx:id="fullNameLabel" styleClass="bio-value" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
-        <Label text="Всего кредитов:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-        <Label fx:id="totalCreditsLabel" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+        <Label text="дата регистрации:" styleClass="bio-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <Label fx:id="createdAtLabel" styleClass="bio-value" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-        <Label text="Активных:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-        <Label fx:id="activeCreditsLabel" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+        <Label text="всего кредитов:" styleClass="bio-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <Label fx:id="totalCreditsLabel" styleClass="bio-value" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
 
-        <Label text="Закрыто:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
-        <Label fx:id="closedCreditsLabel" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+        <Label text="активных:" styleClass="bio-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <Label fx:id="activeCreditsLabel" styleClass="bio-value" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+        <Label text="закрыто:" styleClass="bio-label" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+        <Label fx:id="closedCreditsLabel" styleClass="bio-value" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
     </GridPane>
 
-    <PieChart fx:id="pieChart" prefWidth="350" prefHeight="250" />
-
-    <HBox spacing="10" alignment="CENTER">
-        <Label text="Кредитный рейтинг:" style="-fx-font-size: 14;"/>
-        <Label fx:id="ratingLetterLabel" style="-fx-font-size: 48; -fx-font-weight: bold;"/>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label fx:id="chartCaptionLabel" text="график: платежи" styleClass="bio-subtitle"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <ToggleButton fx:id="paymentsToggle" text="платежи" selected="true" styleClass="bio-toggle"/>
+        <ToggleButton fx:id="creditsToggle" text="кредиты" styleClass="bio-toggle"/>
     </HBox>
 
-    <Button text="Закрыть" onAction="#onCloseClick" style="-fx-background-color: #2196F3; -fx-text-fill: white;"/>
+    <PieChart fx:id="pieChart" prefWidth="360" prefHeight="260" legendVisible="true"/>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="буква рейтинга:" styleClass="bio-label"/>
+        <Label fx:id="ratingLetterLabel" styleClass="bio-rating-letter"/>
+    </HBox>
+
+    <Button text="закрыть" onAction="#onCloseClick" styleClass="button-gray"/>
 </VBox>

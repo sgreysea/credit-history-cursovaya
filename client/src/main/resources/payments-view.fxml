@@ -30,7 +30,6 @@
     <HBox spacing="10" alignment="CENTER_LEFT">
         <Button fx:id="markPaidButton" text="Оплатить" onAction="#handleMarkAsPaid" styleClass="button-green"/>
         <Button fx:id="skipButton" text="Пропустить" onAction="#handleSkipPayment" styleClass="button-red"/>
-        <Button fx:id="refreshButton" text="Обновить" onAction="#handleRefresh" styleClass="button-gray"/>
 
         <Region HBox.hgrow="ALWAYS"/>
 

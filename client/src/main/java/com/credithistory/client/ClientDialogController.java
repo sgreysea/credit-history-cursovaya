@@ -16,6 +16,7 @@ public class ClientDialogController {
     @FXML private TextField phoneField;
     @FXML private TextField emailField;
     @FXML private TextField addressField;
+    @FXML private TextField birthYearField;
     @FXML private Label errorLabel;
 
     private Client client;
@@ -41,8 +42,10 @@ public class ClientDialogController {
             phoneField.setText(client.getPhone() != null ? client.getPhone() : "");
             emailField.setText(client.getEmail() != null ? client.getEmail() : "");
             addressField.setText(client.getAddress() != null ? client.getAddress() : "");
+            birthYearField.setText(client.getBirthYear() != null ? String.valueOf(client.getBirthYear()) : "");
         } else {
             titleLabel.setText("Добавить клиента");
+            birthYearField.clear();
         }
     }
 
@@ -60,6 +63,7 @@ public class ClientDialogController {
         String phone = phoneField.getText().trim();
         String email = emailField.getText().trim();
         String address = addressField.getText().trim();
+        String birthYearRaw = birthYearField.getText().trim();
 
         if (fullName.isEmpty() || passport.isEmpty()) {
             errorLabel.setText("ФИО и паспорт обязательны для заполнения");
@@ -68,6 +72,27 @@ public class ClientDialogController {
         if (!email.isEmpty() && !EMAIL_PATTERN.matcher(email).matches()) {
             errorLabel.setText("Введите корректный email");
             return;
+        }
+
+        Integer birthYear;
+        if (birthYearRaw.isEmpty()) {
+            if (client != null && client.getId() != 0) {
+                if (client.getBirthYear() != null) {
+                    birthYear = client.getBirthYear();
+                } else {
+                    errorLabel.setText("Укажите год рождения клиента");
+                    return;
+                }
+            } else {
+                errorLabel.setText("Укажите год рождения клиента");
+                return;
+            }
+        } else {
+            birthYear = resolveBirthYear(birthYearRaw);
+            if (birthYear == null) {
+                errorLabel.setText("Год рождения должен быть числом между 1900 и текущим годом");
+                return;
+            }
         }
 
         if (client == null) {
@@ -79,15 +104,18 @@ public class ClientDialogController {
         client.setPhone(phone);
         client.setEmail(email);
         client.setAddress(address);
+        client.setBirthYear(birthYear);
         client.setRegisteredBy(currentUserId);
 
         new Thread(() -> {
             String command;
-            String data = encodePayload(fullName, passport, phone, email, address);
+            String yearStr = birthYear != null ? String.valueOf(birthYear) : "";
+            String data = encodePayload(fullName, passport, phone, email, address, yearStr);
             if (client.getId() == 0) {
                 command = "add_client " + data;
             } else {
-                command = "update_client " + encodePayload(String.valueOf(client.getId()), fullName, passport, phone, email, address);
+                command = "update_client "
+                        + encodePayload(String.valueOf(client.getId()), fullName, passport, phone, email, address, yearStr);
             }
 
             String response = networkClient.sendCommand(command);
@@ -115,6 +143,18 @@ public class ClientDialogController {
     private void closeWindow() {
         Stage stage = (Stage) fullNameField.getScene().getWindow();
         stage.close();
+    }
+
+    private Integer resolveBirthYear(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            int y = Integer.parseInt(raw.trim());
+            int cy = java.time.LocalDate.now().getYear();
+            if (y < 1900 || y > cy) return null;
+            return y;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String encodePayload(String... fields) {

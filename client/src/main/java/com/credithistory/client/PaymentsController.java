@@ -27,7 +27,6 @@ public class PaymentsController {
     @FXML private Label statusLabel;
     @FXML private Button markPaidButton;
     @FXML private Button skipButton;
-    @FXML private Button refreshButton;
 
     private Credit credit;
     private NetworkClient networkClient;
@@ -122,20 +121,12 @@ public class PaymentsController {
                 if (credit.getStatus() == CreditStatus.CLOSED) {
                     markPaidButton.setVisible(false);
                     skipButton.setVisible(false);
-                    refreshButton.setVisible(false);
                 } else {
                     markPaidButton.setVisible(true);
                     skipButton.setVisible(true);
-                    refreshButton.setVisible(true);
                 }
             });
         }).start();
-    }
-
-    @FXML
-    private void handleRefresh() {
-        loadPayments();
-        updateCreditInfo();
     }
 
     @FXML

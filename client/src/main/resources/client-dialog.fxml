@@ -34,6 +34,9 @@
 
         <Label text="Адрес:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
         <TextField fx:id="addressField" promptText="г. Минск, ул. Ленина, д. 1" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+
+        <Label text="Год рождения:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+        <TextField fx:id="birthYearField" promptText="например, 1990" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
     </GridPane>
 
     <Separator/>

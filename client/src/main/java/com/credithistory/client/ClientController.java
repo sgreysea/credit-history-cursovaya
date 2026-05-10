@@ -30,6 +30,7 @@ public class ClientController {
     @FXML private TableColumn<Client, String> fullNameColumn;
     @FXML private TableColumn<Client, String> passportColumn;
     @FXML private TableColumn<Client, String> phoneColumn;
+    @FXML private TableColumn<Client, Integer> creditCountColumn;
     @FXML private TableColumn<Client, String> ratingColumn;
     @FXML private Button addCreditButton;
     @FXML private Button closeCreditButton;
@@ -59,17 +60,22 @@ public class ClientController {
         this.currentUser = user;
         userInfoLabel.setText("Сотрудник: " + user.getFullName() + " (" + user.getRole().getDisplayName() + ")");
 
-        // Супер-админ не может оформлять/закрывать кредиты
+        // Супер-админ не может оформлять/закрывать кредиты и график платежей
         if (user.getRole() == Role.SUPER_ADMIN) {
+            addCreditButton.setManaged(false);
             addCreditButton.setVisible(false);
+            closeCreditButton.setManaged(false);
             closeCreditButton.setVisible(false);
+            showPaymentsButton.setManaged(false);
             showPaymentsButton.setVisible(false);
             addUserButton.setVisible(true);
+            addUserButton.setManaged(true);
         } else {
             addUserButton.setVisible(false);
+            addUserButton.setManaged(false);
         }
 
-        // Статистика сотрудников только для супер-админа
+        statsButton.setManaged(user.getRole() == Role.SUPER_ADMIN);
         statsButton.setVisible(user.getRole() == Role.SUPER_ADMIN);
     }
 
@@ -87,6 +93,7 @@ public class ClientController {
         fullNameColumn.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         passportColumn.setCellValueFactory(new PropertyValueFactory<>("passport"));
         phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
+        creditCountColumn.setCellValueFactory(new PropertyValueFactory<>("creditCount"));
 
         // Колонка "Добавил сотрудник"
         TableColumn<Client, String> addedByColumn = new TableColumn<>("Добавил сотрудник");
@@ -97,11 +104,11 @@ public class ClientController {
         });
         clientsTable.getColumns().add(addedByColumn);
 
-        // Колонка с кнопкой "Биография"
-        TableColumn<Client, Void> bioColumn = new TableColumn<>("Биография");
+        // Колонка с переходом в окно кредитного рейтинга
+        TableColumn<Client, Void> bioColumn = new TableColumn<>("рейтинг");
         bioColumn.setCellFactory(col -> {
             TableCell<Client, Void> cell = new TableCell<>() {
-                private final Button btn = new Button("📋 Биография");
+                private final Button btn = new Button("📊 открыть");
                 {
                     btn.setOnAction(e -> {
                         Client client = getTableView().getItems().get(getIndex());
@@ -195,7 +202,7 @@ public class ClientController {
                         String[] items = data.split(";");
                         for (String item : items) {
                             String[] fields = item.split("\\|");
-                            if (fields.length >= 8) {
+                            if (!item.isBlank() && fields.length >= 8) {
                                 Client client = new Client();
                                 client.setId(Integer.parseInt(fields[0]));
                                 client.setFullName(fields[1]);
@@ -205,6 +212,22 @@ public class ClientController {
                                 client.setRatingLetter(fields[7]);
                                 employeeNames.put(Integer.parseInt(fields[4]), fields[5]);
                                 clientRatings.put(client.getId(), fields[7]);
+                                if (fields.length >= 10) {
+                                    if (!fields[8].isEmpty()) {
+                                        try {
+                                            client.setBirthYear(Integer.parseInt(fields[8]));
+                                        } catch (NumberFormatException ignored) {
+                                            client.setBirthYear(null);
+                                        }
+                                    }
+                                    try {
+                                        client.setCreditCount(Integer.parseInt(fields[9]));
+                                    } catch (NumberFormatException ignored) {
+                                        client.setCreditCount(0);
+                                    }
+                                } else {
+                                    client.setCreditCount(0);
+                                }
                                 clientsList.add(client);
                             }
                         }
@@ -379,17 +402,17 @@ public class ClientController {
             return;
         }
         new Thread(() -> {
-            String resp = networkClient.sendCommand("get_client_bio " + clientId);
+                    String resp = networkClient.sendCommand("get_client_bio " + clientId);
             Platform.runLater(() -> {
                 if (resp != null && resp.startsWith("OK:")) {
                     try {
-                        String[] parts = resp.substring(3).split("\\|");
+                        String[] parts = resp.substring(3).split("\\|", -1);
                         FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-bio.fxml"));
                         Stage stage = new Stage();
                         stage.setScene(new Scene(loader.load()));
                         ClientBioController ctrl = loader.getController();
                         ctrl.setClientData(parts);
-                        stage.setTitle("Биография");
+                        stage.setTitle("Кредитный рейтинг");
                         stage.initModality(Modality.WINDOW_MODAL);
                         stage.initOwner(clientsTable.getScene().getWindow());
                         stage.show();
@@ -415,7 +438,7 @@ public class ClientController {
                 if (response != null && response.startsWith("OK:")) {
                     String[] rows = response.substring(3).split(";");
                     TableView<String[]> table = new TableView<>();
-                    String[] cols = {"Сотрудник", "Кредитов оформлено"};
+                    String[] cols = {"ФИО", "клиентов добавлено", "кредитов оформлено"};
                     for (int i = 0; i < cols.length; i++) {
                         final int idx = i + 1;
                         TableColumn<String[], String> col = new TableColumn<>(cols[i]);
@@ -423,13 +446,18 @@ public class ClientController {
                         table.getColumns().add(col);
                     }
                     ObservableList<String[]> list = FXCollections.observableArrayList();
-                    for (String row : rows) list.add(row.split("\\|"));
+                    for (String row : rows) {
+                        if (!row.isBlank()) {
+                            String[] colsData = row.split("\\|", -1);
+                            if (colsData.length >= 4) list.add(colsData);
+                        }
+                    }
                     table.setItems(list);
                     Stage stage = new Stage();
-                    stage.setTitle("Статистика сотрудников");
+                    stage.setTitle("статистика сотрудников банка");
                     stage.initModality(Modality.WINDOW_MODAL);
                     stage.initOwner(clientsTable.getScene().getWindow());
-                    VBox vbox = new VBox(10, new Label("кредиты по сотрудникам"), table);
+                    VBox vbox = new VBox(12, new Label("статистика по действиям сотрудников"), table);
                     vbox.setPadding(new Insets(10));
                     stage.setScene(new Scene(vbox, 600, 400));
                     stage.show();
@@ -635,9 +663,22 @@ public class ClientController {
 
     @FXML
     private void handleAddCredit() {
+        if (currentUser != null && currentUser.getRole() == Role.SUPER_ADMIN) {
+            showAlert("Супер-администратор не оформляет кредиты");
+            return;
+        }
         Client selected = clientsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Выберите клиента");
+            return;
+        }
+        if (selected.getBirthYear() == null) {
+            showAlert("Укажите год рождения клиента в карточке (редактирование клиента).");
+            return;
+        }
+        int ageYears = LocalDate.now().getYear() - selected.getBirthYear();
+        if (ageYears < 18) {
+            showAlert("Клиент несовершеннолетний, оформление кредита невозможно.");
             return;
         }
         try {

@@ -11,8 +11,17 @@ public class Client implements Serializable {
     private String phone;
     private String email;
     private String address;
+    private Integer birthYear;
     private int registeredBy;
     private Timestamp createdAt;
+    /** подгружается из get_clients, для отображения */
+    private int creditCount;
+
+    public int getCreditCount() { return creditCount; }
+    public void setCreditCount(int creditCount) { this.creditCount = creditCount; }
+
+    public Integer getBirthYear() { return birthYear; }
+    public void setBirthYear(Integer birthYear) { this.birthYear = birthYear; }
     private String ratingLetter;
     public String getRatingLetter() { return ratingLetter; }
     public void setRatingLetter(String ratingLetter) { this.ratingLetter = ratingLetter; }

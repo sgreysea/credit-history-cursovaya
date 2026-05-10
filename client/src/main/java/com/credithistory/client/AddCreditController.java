@@ -7,6 +7,10 @@ import javafx.stage.Stage;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 
 public class AddCreditController {
 
@@ -103,6 +107,21 @@ public class AddCreditController {
 
             if (rate.compareTo(BigDecimal.ZERO) < 0) {
                 errorLabel.setText("Ставка не может быть отрицательной");
+                return;
+            }
+
+            if (client.getBirthYear() == null) {
+                errorLabel.setText("Укажите год рождения клиента в карточке");
+                return;
+            }
+            int ageYears = LocalDate.now().getYear() - client.getBirthYear();
+            if (ageYears < 18) {
+                Alert a = new Alert(Alert.AlertType.WARNING,
+                        "Клиент несовершеннолетний — кредит оформить нельзя.",
+                        ButtonType.OK);
+                a.setHeaderText(null);
+                a.showAndWait();
+                errorLabel.setText("Несовершеннолетний клиент");
                 return;
             }
 

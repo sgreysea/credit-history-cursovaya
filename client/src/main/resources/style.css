@@ -1,6 +1,6 @@
 /* Общий фон для всех окон */
 .root {
-    -fx-background-color: #F0FFF0;
+    -fx-background-color: #e8ece8;
 }
 
 /* Заголовки */
@@ -9,9 +9,52 @@
 }
 
 .label.header {
-    -fx-font-size: 20px;
+    -fx-font-size: 21px;
     -fx-font-weight: bold;
     -fx-text-fill: #1e2e1e;
+    -fx-padding: 0 0 6 0;
+}
+
+/* Окно кредитного рейтинга */
+VBox.bio-root {
+    -fx-background-color: linear-gradient(to bottom, #e4eae4, #d8dfd8);
+}
+
+.bio-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #243024;
+}
+
+.bio-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #334433;
+}
+
+.bio-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #3a483a;
+}
+
+.bio-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: #1e281e;
+}
+
+.bio-toggle {
+    -fx-background-color: #9aaa9a;
+    -fx-text-fill: white;
+    -fx-padding: 6px 14px;
+    -fx-font-size: 12px;
+}
+
+.bio-toggle:selected {
+    -fx-background-color: #6b8e6b;
+}
+
+.bio-rating-letter {
+    -fx-font-size: 44px;
+    -fx-font-weight: bold;
 }
 
 /* Поля ввода */

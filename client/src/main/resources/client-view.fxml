@@ -38,6 +38,7 @@
             <TableColumn fx:id="fullNameColumn" text="ФИО" prefWidth="200"/>
             <TableColumn fx:id="passportColumn" text="Паспорт" prefWidth="120"/>
             <TableColumn fx:id="phoneColumn" text="Телефон" prefWidth="120"/>
+            <TableColumn fx:id="creditCountColumn" text="кредитов" prefWidth="80"/>
             <TableColumn fx:id="ratingColumn" text="Рейтинг" prefWidth="80"/>
         </columns>
     </TableView>
@@ -48,9 +49,8 @@
         <Button text="Редактировать" onAction="#handleEditClient" styleClass="button-yellow"/>
         <Button text="Удалить" onAction="#handleDeleteClient" styleClass="button-red"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Кредитная история" onAction="#handleShowCreditHistory" styleClass="button-gray"/>
-        <Button text="Оформить кредит" onAction="#handleAddCredit" styleClass="button-green"/>
-        <Button fx:id="statsButton" text="Статистика сотрудников" onAction="#handleShowStats" styleClass="button-blue"/>
+        <Button text="кредитный рейтинг" onAction="#handleShowCreditHistory" styleClass="button-gray"/>
+        <Button fx:id="statsButton" text="статистика сотрудников" onAction="#handleShowStats" styleClass="button-blue"/>
         <Button fx:id="addUserButton" text="Сотрудники банка" onAction="#handleAddUser" visible="false"/>
     </HBox>
 
