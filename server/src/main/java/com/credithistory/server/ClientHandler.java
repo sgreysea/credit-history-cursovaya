@@ -199,12 +199,15 @@ public class ClientHandler implements Runnable {
             first = false;
             int creditCnt = creditDAO.countCreditsByClientId(c.getId());
             String birthYearField = c.getBirthYear() != null ? String.valueOf(c.getBirthYear()) : "";
+            String email = c.getEmail() != null ? c.getEmail() : "";
+            String address = c.getAddress() != null ? c.getAddress() : "";
             sb.append(c.getId()).append("|").append(c.getFullName()).append("|")
                     .append(c.getPassport()).append("|").append(c.getPhone() == null ? "-" : c.getPhone()).append("|")
                     .append(c.getRegisteredBy()).append("|").append(names.getOrDefault(c.getRegisteredBy(), "?")).append("|");
             int score = scoreCalculator.calculateScore(c.getId());
             sb.append(score).append("|").append(scoreCalculator.getRatingLetter(score)).append("|")
-                    .append(birthYearField).append("|").append(creditCnt);
+                    .append(birthYearField).append("|").append(creditCnt).append("|")
+                    .append(email).append("|").append(address);
         }
         return sb.toString();
     }
@@ -337,14 +340,22 @@ public class ClientHandler implements Runnable {
     private String handleAddCredit(String[] parts) {
         if (currentUser == null) return "ERROR:Не авторизован";
         if (currentUser.getRole() == Role.SUPER_ADMIN) return "ERROR:Супер-админ не может добавлять кредиты";
-        if (parts.length < 6) return "Неверный формат";
-        Client clientRow = clientDAO.findById(Integer.parseInt(parts[1]));
+        if (parts.length < 6) return "ERROR:Неверный формат";
+        int clientId = Integer.parseInt(parts[1]);
+        Client clientRow = clientDAO.findById(clientId);
         if (clientRow == null) return "ERROR:Клиент не найден";
         if (clientRow.getBirthYear() == null)
             return "ERROR:Не указан год рождения клиента";
         if (!isAdult(clientRow.getBirthYear()))
             return "ERROR:Клиент несовершеннолетний, оформление кредита запрещено";
-        Credit c = new Credit(Integer.parseInt(parts[1]), currentUser.getId(), new BigDecimal(parts[2]),
+        // проверка кредитного рейтинга
+        int score = scoreCalculator.calculateScore(clientId);
+        String letter = scoreCalculator.getRatingLetter(score);
+        if (letter.equals("E")) {
+            return "ERROR:Кредитный рейтинг клиента слишком низкий (E). В выдаче кредита отказано";
+        }
+
+        Credit c = new Credit(clientId, currentUser.getId(), new BigDecimal(parts[2]),
                 Integer.parseInt(parts[3]), new BigDecimal(parts[4]), LocalDate.parse(parts[5]));
         if (creditDAO.createCredit(c)) {
             paymentDAO.generatePaymentSchedule(c.getId(), c.getMonthlyPayment(), c.getIssueDate(), c.getTermMonths());
