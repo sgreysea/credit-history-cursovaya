@@ -281,14 +281,59 @@ public class ClientController {
 
     @FXML
     private void handleSearch() {
-        // Заглушка — поиск на стороне клиента
-        String query = searchField.getText().trim().toLowerCase();
+        String query = searchField.getText().trim();
         if (query.isEmpty()) {
             loadClients();
             return;
         }
-        clientsList.clear();
-        // TODO: реализовать поиск через сервер
+
+        if (networkClient == null || !networkClient.isConnected()) {
+            updateStatus("Нет подключения к серверу");
+            return;
+        }
+
+        new Thread(() -> {
+            String response = networkClient.sendCommand("search_clients " + query);
+            Platform.runLater(() -> {
+                if (response != null && response.startsWith("OK:")) {
+                    clientsList.clear();
+                    employeeNames.clear();
+                    clientRatings.clear();
+                    String data = response.substring(3);
+                    if (!data.isEmpty()) {
+                        String[] items = data.split(";");
+                        for (String item : items) {
+                            String[] fields = item.split("\\|");
+                            if (!item.isBlank() && fields.length >= 8) {
+                                Client client = new Client();
+                                client.setId(Integer.parseInt(fields[0]));
+                                client.setFullName(fields[1]);
+                                client.setPassport(fields[2]);
+                                client.setPhone(fields[3]);
+                                client.setRegisteredBy(Integer.parseInt(fields[4]));
+                                client.setRatingLetter(fields[7]);
+                                employeeNames.put(Integer.parseInt(fields[4]), fields[5]);
+                                clientRatings.put(client.getId(), fields[7]);
+                                if (fields.length >= 10) {
+                                    if (!fields[8].isEmpty()) {
+                                        try { client.setBirthYear(Integer.parseInt(fields[8])); }
+                                        catch (NumberFormatException ignored) { client.setBirthYear(null); }
+                                    }
+                                    try { client.setCreditCount(Integer.parseInt(fields[9])); }
+                                    catch (NumberFormatException ignored) { client.setCreditCount(0); }
+                                } else {
+                                    client.setCreditCount(0);
+                                }
+                                clientsList.add(client);
+                            }
+                        }
+                    }
+                    updateStatus("Найдено клиентов: " + clientsList.size());
+                } else {
+                    updateStatus("Ошибка поиска: " + response);
+                }
+            });
+        }).start();
     }
 
     @FXML
