@@ -101,11 +101,6 @@ public class ClientHandler implements Runnable {
         if (currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR:Только супер-админ может смотреть статистику";
 
         Map<Integer, Integer> creditsByEmployee = new HashMap<>();
-        for (User user : userDAO.getAllUsers()) {
-            if (!user.isActive()) continue;
-            creditsByEmployee.put(user.getId(), 0);
-        }
-
         for (Credit credit : creditDAO.getAllCredits()) {
             creditsByEmployee.merge(credit.getUserId(), 1, Integer::sum);
         }
@@ -114,9 +109,11 @@ public class ClientHandler implements Runnable {
         boolean first = true;
         for (User user : userDAO.getAllUsers()) {
             if (!user.isActive()) continue;
+            int clientsRegistered = clientDAO.countClientsRegisteredByUser(user.getId());
+            int creditsIssued = creditsByEmployee.getOrDefault(user.getId(), 0);
             if (!first) sb.append(";");
             sb.append(user.getId()).append("|").append(user.getFullName()).append("|")
-                    .append(creditsByEmployee.getOrDefault(user.getId(), 0));
+                    .append(clientsRegistered).append("|").append(creditsIssued);
             first = false;
         }
         return sb.toString();
@@ -138,11 +135,32 @@ public class ClientHandler implements Runnable {
         stats.setRatingScore(score);
         stats.setRatingLetter(scoreCalculator.getRatingLetter(score));
         stats.setRatingColor(scoreCalculator.getRatingColor(score));
-        return String.format("OK:%s|%s|%d|%d|%d|%d|%d|%d|%d|%s|%s",
+
+        List<Credit> credits = creditDAO.getCreditsByClientId(stats.getClientId());
+        int crActive = 0;
+        int crOverdue = 0;
+        int crClosedNormal = 0;
+        int crClosedEarly = 0;
+        for (Credit credit : credits) {
+            switch (credit.getStatus()) {
+                case ACTIVE -> crActive++;
+                case OVERDUE -> crOverdue++;
+                case CLOSED -> {
+                    if (scoreCalculator.isClosedEarlyPaidOff(credit)) {
+                        crClosedEarly++;
+                    } else {
+                        crClosedNormal++;
+                    }
+                }
+            }
+        }
+
+        return String.format("OK:%s|%s|%d|%d|%d|%d|%d|%d|%d|%s|%s|%d|%d|%d|%d",
                 stats.getFullName(), stats.getCreatedAt(), stats.getTotalCredits(),
                 stats.getActiveCredits(), stats.getClosedCredits(), stats.getTotalPaid(),
                 stats.getPaidOnTime(), stats.getEarlyPayments(), stats.getTotalOverdue(),
-                stats.getRatingLetter(), stats.getRatingColor());
+                stats.getRatingLetter(), stats.getRatingColor(),
+                crActive, crOverdue, crClosedNormal, crClosedEarly);
     }
 
     private String handleLogin(String[] parts) {
@@ -175,13 +193,18 @@ public class ClientHandler implements Runnable {
             names.put(u.getId(), sn);
         }
         StringBuilder sb = new StringBuilder("OK:");
+        boolean first = true;
         for (Client c : clients) {
+            if (!first) sb.append(";");
+            first = false;
+            int creditCnt = creditDAO.countCreditsByClientId(c.getId());
+            String birthYearField = c.getBirthYear() != null ? String.valueOf(c.getBirthYear()) : "";
             sb.append(c.getId()).append("|").append(c.getFullName()).append("|")
                     .append(c.getPassport()).append("|").append(c.getPhone() == null ? "-" : c.getPhone()).append("|")
                     .append(c.getRegisteredBy()).append("|").append(names.getOrDefault(c.getRegisteredBy(), "?")).append("|");
             int score = scoreCalculator.calculateScore(c.getId());
-            sb.append(score).append("|").append(scoreCalculator.getRatingLetter(score));
-            sb.append(";");
+            sb.append(score).append("|").append(scoreCalculator.getRatingLetter(score)).append("|")
+                    .append(birthYearField).append("|").append(creditCnt);
         }
         return sb.toString();
     }
@@ -194,10 +217,14 @@ public class ClientHandler implements Runnable {
         String[] d = decodePayload(commandParts[1]);
         if (d.length < 3) return "ERROR:Неверный формат";
         String email = d.length > 3 ? d[3] : "";
+        String address = d.length > 4 ? d[4] : "";
+        String birthYearStr = d.length > 5 ? d[5] : "";
         if (!isValidEmail(email)) return "ERROR:Некорректный email";
+        Integer birthYear = parseBirthYear(birthYearStr);
         Client c = new Client(d[0], d[1], d[2], currentUser.getId());
         c.setEmail(email);
-        c.setAddress(d.length > 4 ? d[4] : "");
+        c.setAddress(address);
+        c.setBirthYear(birthYear);
         return clientDAO.createClient(c) ? "OK:" + c.getId() : "ERROR:Ошибка создания клиента";
     }
 
@@ -209,10 +236,34 @@ public class ClientHandler implements Runnable {
         Client c = clientDAO.findById(Integer.parseInt(d[0]));
         if (c == null) return "ERROR:Клиент не найден";
         String email = d.length > 4 ? d[4] : "";
+        String address = d.length > 5 ? d[5] : "";
+        String birthYearStr = d.length > 6 ? d[6] : "";
         if (!isValidEmail(email)) return "ERROR:Некорректный email";
-        c.setFullName(d[1]); c.setPassport(d[2]); c.setPhone(d[3]);
-        c.setEmail(email); c.setAddress(d.length > 5 ? d[5] : "");
+        c.setFullName(d[1]);
+        c.setPassport(d[2]);
+        c.setPhone(d[3]);
+        c.setEmail(email);
+        c.setAddress(address);
+        c.setBirthYear(parseBirthYear(birthYearStr));
         return clientDAO.updateClient(c) ? "OK:Обновлён" : "ERROR:Ошибка обновления";
+    }
+
+    /** Пустая строка — не меняем год при обновлениях через старых клиентов; иначе год или сброс (0). */
+    private Integer parseBirthYear(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            int y = Integer.parseInt(raw.trim());
+            if (y < 1900 || y > LocalDate.now().getYear()) return null;
+            return y;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Возраст по году рождения: текущий год минус год (как в ТЗ). */
+    private boolean isAdult(Integer birthYear) {
+        int currentYear = LocalDate.now().getYear();
+        return birthYear != null && (currentYear - birthYear) >= 18;
     }
 
     private String handleDeleteClient(String[] parts) {
@@ -248,6 +299,12 @@ public class ClientHandler implements Runnable {
         if (currentUser == null) return "ERROR:Не авторизован";
         if (currentUser.getRole() == Role.SUPER_ADMIN) return "ERROR:Супер-админ не может добавлять кредиты";
         if (parts.length < 6) return "Неверный формат";
+        Client clientRow = clientDAO.findById(Integer.parseInt(parts[1]));
+        if (clientRow == null) return "ERROR:Клиент не найден";
+        if (clientRow.getBirthYear() == null)
+            return "ERROR:Не указан год рождения клиента";
+        if (!isAdult(clientRow.getBirthYear()))
+            return "ERROR:Клиент несовершеннолетний, оформление кредита запрещено";
         Credit c = new Credit(Integer.parseInt(parts[1]), currentUser.getId(), new BigDecimal(parts[2]),
                 Integer.parseInt(parts[3]), new BigDecimal(parts[4]), LocalDate.parse(parts[5]));
         if (creditDAO.createCredit(c)) {
@@ -398,6 +455,7 @@ public class ClientHandler implements Runnable {
 
     private String[] decodePayload(String encodedPayload) {
         String decoded = new String(Base64.getDecoder().decode(encodedPayload), StandardCharsets.UTF_8);
+        // -1 сохраняет пустые поля на конце (иначе теряются email или address перед завершающим |)
         return decoded.split("\\|", -1);
     }
 

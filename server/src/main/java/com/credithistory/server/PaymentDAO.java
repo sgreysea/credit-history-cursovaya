@@ -109,6 +109,7 @@ public class PaymentDAO {
                 // Перерасчет остатка: переплата уменьшает будущие суммы, недоплата увеличивает.
                 recalculateFuturePayments(conn, payment.getCreditId(), extraAmount.negate());
             }
+            settleIfFullyPaidOff(conn, payment.getCreditId());
             conn.commit();
             return true;
         } catch (SQLException e) {
@@ -242,6 +243,22 @@ public class PaymentDAO {
         }
     }
 
+    public LocalDate getLatestPaidActualDate(int creditId) {
+        String sql = "SELECT MAX(actual_date) AS d FROM payments WHERE credit_id = ? AND status = 'PAID'";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, creditId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                Date d = rs.getDate("d");
+                if (d != null) return d.toLocalDate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public List<Payment> getPaymentsByCreditId(int creditId) {
         List<Payment> payments = new ArrayList<>();
         String sql = "SELECT * FROM payments WHERE credit_id = ? ORDER BY planned_date";
@@ -280,6 +297,49 @@ public class PaymentDAO {
             conn.commit();
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    /** Если остаток по графику нулевой (или копейки), закрываем активные платежи и кредит. */
+    private void settleIfFullyPaidOff(Connection conn, int creditId) throws SQLException {
+        String zeroPending = "UPDATE payments SET status='PAID', actual_date=CURDATE(), actual_amount=planned_amount "
+                + "WHERE credit_id=? AND status='PENDING' AND planned_amount<=0";
+        try (PreparedStatement ps = conn.prepareStatement(zeroPending)) {
+            ps.setInt(1, creditId);
+            ps.executeUpdate();
+        }
+
+        String sumPending = "SELECT COALESCE(SUM(planned_amount), 0) FROM payments WHERE credit_id=? AND status='PENDING'";
+        BigDecimal remaining = BigDecimal.ZERO;
+        try (PreparedStatement ps = conn.prepareStatement(sumPending)) {
+            ps.setInt(1, creditId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) remaining = rs.getBigDecimal(1);
+        }
+
+        BigDecimal waiveLimit = new BigDecimal("0.05");
+        if (remaining.compareTo(BigDecimal.ZERO) > 0 && remaining.compareTo(waiveLimit) <= 0) {
+            String waive = "UPDATE payments SET status='PAID', actual_date=CURDATE(), actual_amount=planned_amount "
+                    + "WHERE credit_id=? AND status='PENDING'";
+            try (PreparedStatement ps = conn.prepareStatement(waive)) {
+                ps.setInt(1, creditId);
+                ps.executeUpdate();
+            }
+        }
+
+        String countPen = "SELECT COUNT(*) FROM payments WHERE credit_id=? AND status='PENDING'";
+        int pendingCnt = 0;
+        try (PreparedStatement ps = conn.prepareStatement(countPen)) {
+            ps.setInt(1, creditId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) pendingCnt = rs.getInt(1);
+        }
+        if (pendingCnt == 0) {
+            String close = "UPDATE credits SET status='CLOSED' WHERE id=? AND status != 'CLOSED'";
+            try (PreparedStatement ps = conn.prepareStatement(close)) {
+                ps.setInt(1, creditId);
+                ps.executeUpdate();
+            }
         }
     }
 

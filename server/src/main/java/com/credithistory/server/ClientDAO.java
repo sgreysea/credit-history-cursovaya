@@ -7,6 +7,20 @@ import java.util.List;
 
 public class ClientDAO {
 
+    /** Добавляет birth_year при первом запуске. */
+    public static void ensureSchema() {
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement st = conn.createStatement()) {
+            st.executeUpdate("ALTER TABLE clients ADD COLUMN birth_year INT NULL");
+        } catch (SQLException e) {
+            boolean duplicate = e.getErrorCode() == 1060
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate column"));
+            if (!duplicate) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public List<Client> getAllClients() {
         List<Client> clients = new ArrayList<>();
         String sql = "SELECT * FROM clients ORDER BY full_name";
@@ -63,8 +77,8 @@ public class ClientDAO {
     }
 
     public boolean createClient(Client client) {
-        String sql = "INSERT INTO clients (full_name, passport, phone, email, address, registered_by) " +
-                "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO clients (full_name, passport, phone, email, address, registered_by, birth_year) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -75,6 +89,11 @@ public class ClientDAO {
             stmt.setString(4, client.getEmail());
             stmt.setString(5, client.getAddress());
             stmt.setInt(6, client.getRegisteredBy());
+            if (client.getBirthYear() != null) {
+                stmt.setInt(7, client.getBirthYear());
+            } else {
+                stmt.setNull(7, Types.INTEGER);
+            }
 
             int affectedRows = stmt.executeUpdate();
 
@@ -92,7 +111,7 @@ public class ClientDAO {
     }
 
     public boolean updateClient(Client client) {
-        String sql = "UPDATE clients SET full_name=?, passport=?, phone=?, email=?, address=? WHERE id=?";
+        String sql = "UPDATE clients SET full_name=?, passport=?, phone=?, email=?, address=?, birth_year=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -102,7 +121,12 @@ public class ClientDAO {
             stmt.setString(3, client.getPhone());
             stmt.setString(4, client.getEmail());
             stmt.setString(5, client.getAddress());
-            stmt.setInt(6, client.getId());
+            if (client.getBirthYear() != null) {
+                stmt.setInt(6, client.getBirthYear());
+            } else {
+                stmt.setNull(6, Types.INTEGER);
+            }
+            stmt.setInt(7, client.getId());
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -135,7 +159,26 @@ public class ClientDAO {
         client.setAddress(rs.getString("address"));
         client.setRegisteredBy(rs.getInt("registered_by"));
         client.setCreatedAt(rs.getTimestamp("created_at"));
+        try {
+            int by = rs.getInt("birth_year");
+            client.setBirthYear(rs.wasNull() ? null : by);
+        } catch (SQLException ex) {
+            client.setBirthYear(null);
+        }
         return client;
+    }
+
+    public int countClientsRegisteredByUser(int userId) {
+        String sql = "SELECT COUNT(*) FROM clients WHERE registered_by = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
     public ClientStatistics getClientStatistics(int clientId) {
         String sql = "SELECT " +

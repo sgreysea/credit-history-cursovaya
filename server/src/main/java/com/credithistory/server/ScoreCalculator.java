@@ -2,6 +2,7 @@ package com.credithistory.server;
 
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public class ScoreCalculator {
@@ -15,6 +16,7 @@ public class ScoreCalculator {
     private static final double ON_TIME_BONUS_MULTIPLIER = 3.0;
     private static final int OVERDUE_PENALTY_PER_PAYMENT = 50;
     private static final int CLOSED_CREDIT_BONUS = 25;
+    private static final int EARLY_CLOSURE_BONUS = 40;
     private static final int ACTIVE_CREDIT_PENALTY = 10;
 
     private final PaymentDAO paymentDAO;
@@ -39,10 +41,11 @@ public class ScoreCalculator {
 
         int activeCredits = 0;
         int closedCredits = 0;
+        int earlyClosedCredits = 0;
         BigDecimal totalDebt = BigDecimal.ZERO;
 
         for (Credit credit : credits) {
-            if (credit.getStatus() == CreditStatus.ACTIVE) {
+            if (credit.getStatus() == CreditStatus.ACTIVE || credit.getStatus() == CreditStatus.OVERDUE) {
                 activeCredits++;
                 totalDebt = totalDebt.add(credit.getAmount());
 
@@ -51,7 +54,7 @@ public class ScoreCalculator {
                     if (payment.getStatus() == PaymentStatus.OVERDUE) {
                         long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(
                                 payment.getPlannedDate(),
-                                java.time.LocalDate.now()
+                                LocalDate.now()
                         );
 
                         if (daysOverdue > 30) {
@@ -66,10 +69,14 @@ public class ScoreCalculator {
 
             } else if (credit.getStatus() == CreditStatus.CLOSED) {
                 closedCredits++;
+                if (isClosedEarlyPaidOff(credit)) {
+                    earlyClosedCredits++;
+                }
             }
         }
 
         score += closedCredits * CLOSED_CREDIT_BONUS;
+        score += earlyClosedCredits * EARLY_CLOSURE_BONUS;
 
         score -= activeCredits * ACTIVE_CREDIT_PENALTY;
 
@@ -80,6 +87,14 @@ public class ScoreCalculator {
         }
 
         return Math.max(MIN_SCORE, Math.min(MAX_SCORE, score));
+    }
+
+    /** Кредит закрыт досрочно: последняя выплата раньше планового окончания графика. */
+    public boolean isClosedEarlyPaidOff(Credit credit) {
+        if (credit.getStatus() != CreditStatus.CLOSED) return false;
+        LocalDate scheduleEnd = credit.getIssueDate().plusMonths(credit.getTermMonths());
+        LocalDate lastPaid = paymentDAO.getLatestPaidActualDate(credit.getId());
+        return lastPaid != null && lastPaid.isBefore(scheduleEnd);
     }
 
     public CreditScore calculateScoreWithCategory(int clientId) {
@@ -179,7 +194,7 @@ public class ScoreCalculator {
 
         int activeCredits = 0;
         for (Credit credit : credits) {
-            if (credit.getStatus() == CreditStatus.ACTIVE) {
+            if (credit.getStatus() == CreditStatus.ACTIVE || credit.getStatus() == CreditStatus.OVERDUE) {
                 activeCredits++;
             }
         }

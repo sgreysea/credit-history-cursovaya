@@ -39,6 +39,21 @@ public class CreditDAO {
         }
         return credits;
     }
+    public int countCreditsByClientId(int clientId) {
+        String sql = "SELECT COUNT(*) FROM credits WHERE client_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, clientId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public Credit findById(int id) {
         String sql = "SELECT * FROM credits WHERE id = ?";
 

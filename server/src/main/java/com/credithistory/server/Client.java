@@ -11,6 +11,7 @@ public class Client implements Serializable {
     private String phone;
     private String email;
     private String address;
+    private Integer birthYear;
     private int registeredBy;
     private Timestamp createdAt;
 
@@ -41,6 +42,9 @@ public class Client implements Serializable {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
+    public Integer getBirthYear() { return birthYear; }
+    public void setBirthYear(Integer birthYear) { this.birthYear = birthYear; }
 
     public int getRegisteredBy() { return registeredBy; }
     public void setRegisteredBy(int registeredBy) { this.registeredBy = registeredBy; }
