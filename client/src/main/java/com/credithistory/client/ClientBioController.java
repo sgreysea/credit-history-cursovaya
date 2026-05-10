@@ -49,7 +49,13 @@ public class ClientBioController {
     /** Формат: ... рейтинг|цвет [| кредиты: активн|просроч.|закрыт обыч|закр. досроч — 4 поля] */
     public void setClientData(String[] data) {
         fullNameLabel.setText(data[0]);
-        createdAtLabel.setText(data[1].length() >= 10 ? data[1].substring(0, 10) : data[1]);
+        if (data[1].length() >= 19) {
+            createdAtLabel.setText(data[1].substring(0, 19));
+        } else if (data[1].length() >= 10) {
+            createdAtLabel.setText(data[1].substring(0, 10));
+        } else {
+            createdAtLabel.setText(data[1]);
+        }
         totalCreditsLabel.setText(data[2]);
         activeCreditsLabel.setText(data[3]);
         closedCreditsLabel.setText(data[4]);

@@ -104,26 +104,15 @@ public class ClientController {
         });
         clientsTable.getColumns().add(addedByColumn);
 
-        // Колонка с переходом в окно кредитного рейтинга
-        TableColumn<Client, Void> bioColumn = new TableColumn<>("рейтинг");
-        bioColumn.setCellFactory(col -> {
-            TableCell<Client, Void> cell = new TableCell<>() {
-                private final Button btn = new Button("📊 открыть");
-                {
-                    btn.setOnAction(e -> {
-                        Client client = getTableView().getItems().get(getIndex());
-                        showClientBio(client.getId());
-                    });
-                }
-                @Override
-                protected void updateItem(Void item, boolean empty) {
-                    super.updateItem(item, empty);
-                    setGraphic(empty ? null : btn);
-                }
-            };
-            return cell;
-        });
-        clientsTable.getColumns().add(bioColumn);
+        // Колонка Email
+        TableColumn<Client, String> emailColumn = new TableColumn<>("Email");
+        emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
+        clientsTable.getColumns().add(emailColumn);
+
+// Колонка Адрес
+        TableColumn<Client, String> addressColumn = new TableColumn<>("Адрес");
+        addressColumn.setCellValueFactory(new PropertyValueFactory<>("address"));
+        clientsTable.getColumns().add(addressColumn);
 
         // Колонка "Рейтинг" — цветная буква из кэша clientRatings
         ratingColumn.setCellValueFactory(cellData -> {
@@ -191,6 +180,7 @@ public class ClientController {
 
         new Thread(() -> {
             String response = networkClient.sendCommand("get_clients");
+            System.out.println("ОТВЕТ СЕРВЕРА: " + response);
 
             Platform.runLater(() -> {
                 clientsList.clear();
@@ -224,6 +214,10 @@ public class ClientController {
                                         client.setCreditCount(Integer.parseInt(fields[9]));
                                     } catch (NumberFormatException ignored) {
                                         client.setCreditCount(0);
+                                    }
+                                    if (fields.length >= 12) {
+                                        client.setEmail(fields[10]);
+                                        client.setAddress(fields[11]);
                                     }
                                 } else {
                                     client.setCreditCount(0);
@@ -321,6 +315,10 @@ public class ClientController {
                                     }
                                     try { client.setCreditCount(Integer.parseInt(fields[9])); }
                                     catch (NumberFormatException ignored) { client.setCreditCount(0); }
+                                    if (fields.length >= 12) {
+                                        client.setEmail(fields[10]);
+                                        client.setAddress(fields[11]);
+                                    }
                                 } else {
                                     client.setCreditCount(0);
                                 }

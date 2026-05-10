@@ -49,8 +49,8 @@
         <Button text="Редактировать" onAction="#handleEditClient" styleClass="button-yellow"/>
         <Button text="Удалить" onAction="#handleDeleteClient" styleClass="button-red"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="кредитный рейтинг" onAction="#handleShowCreditHistory" styleClass="button-gray"/>
-        <Button fx:id="statsButton" text="статистика сотрудников" onAction="#handleShowStats" styleClass="button-blue"/>
+        <Button text="Кредитный рейтинг" onAction="#handleShowCreditHistory" styleClass="button-gray"/>
+        <Button fx:id="statsButton" text="Статистика сотрудников" onAction="#handleShowStats" styleClass="button-blue"/>
         <Button fx:id="addUserButton" text="Сотрудники банка" onAction="#handleAddUser" visible="false"/>
     </HBox>
 
