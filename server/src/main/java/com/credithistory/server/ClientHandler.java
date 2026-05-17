@@ -81,24 +81,24 @@ public class ClientHandler implements Runnable {
                 case "delete_user": return handleDeleteUser(parts);
                 case "change_role": return handleChangeRole(commandParts);
                 case "get_employee_stats": return handleGetEmployeeStats();
-                default: return "ERROR:Неизвестная команда";
+                default: return "ERROR: Неизвестная команда";
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return "ERROR:" + e.getMessage();
+            return "ERROR: " + e.getMessage();
         }
     }
 
     private String handleGetCreditInfo(String[] parts) {
-        if (parts.length < 2) return "ERROR:Укажите ID кредита";
+        if (parts.length < 2) return "ERROR: Укажите ID кредита";
         Credit credit = creditDAO.findById(Integer.parseInt(parts[1]));
-        if (credit == null) return "ERROR:Кредит не найден";
+        if (credit == null) return "ERROR: Кредит не найден";
         return String.format("OK:%s|%d|%s", credit.getAmount(), credit.getTermMonths(), credit.getInterestRate());
     }
 
     private String handleGetEmployeeStats() {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR:Только супер-админ может смотреть статистику";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR: Только супер-админ может смотреть статистику";
 
         Map<Integer, Integer> creditsByEmployee = new HashMap<>();
         for (Credit credit : creditDAO.getAllCredits()) {
@@ -120,37 +120,31 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleSkipPayment(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (parts.length < 2) return "ERROR:Укажите ID платежа";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (parts.length < 2) return "ERROR: Укажите ID платежа";
         boolean skipped = paymentDAO.skipPayment(Integer.parseInt(parts[1]));
-        return skipped ? "OK:Платёж отмечен как пропущенный, начислен штраф" : "ERROR:Не удалось";
+        return skipped ? "OK: Платёж отмечен как пропущенный, начислен штраф" : "ERROR: Не удалось";
     }
 
     private String handleGetClientBio(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (parts.length < 2) return "ERROR:Укажите ID клиента";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (parts.length < 2) return "ERROR: Укажите ID клиента";
         ClientStatistics stats = clientDAO.getClientStatistics(Integer.parseInt(parts[1]));
-        if (stats == null) return "ERROR:Клиент не найден";
+        if (stats == null) return "ERROR: Клиент не найден";
         int score = scoreCalculator.calculateScore(stats.getClientId());
         stats.setRatingScore(score);
         stats.setRatingLetter(scoreCalculator.getRatingLetter(score));
         stats.setRatingColor(scoreCalculator.getRatingColor(score));
 
         List<Credit> credits = creditDAO.getCreditsByClientId(stats.getClientId());
-        int crActive = 0;
-        int crOverdue = 0;
-        int crClosedNormal = 0;
-        int crClosedEarly = 0;
+        int crActive = 0, crOverdue = 0, crClosedNormal = 0, crClosedEarly = 0;
         for (Credit credit : credits) {
             switch (credit.getStatus()) {
                 case ACTIVE -> crActive++;
                 case OVERDUE -> crOverdue++;
                 case CLOSED -> {
-                    if (scoreCalculator.isClosedEarlyPaidOff(credit)) {
-                        crClosedEarly++;
-                    } else {
-                        crClosedNormal++;
-                    }
+                    if (scoreCalculator.isClosedEarlyPaidOff(credit)) crClosedEarly++;
+                    else crClosedNormal++;
                 }
             }
         }
@@ -164,25 +158,25 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleLogin(String[] parts) {
-        if (parts.length < 3) return "ERROR:Неверный формат";
+        if (parts.length < 3) return "ERROR: Неверный формат";
         User user = userDAO.findByLogin(parts[1]);
         if (user != null && user.getPassword().equals(parts[2])) {
             currentUser = user;
             return "OK:" + user.getId() + ":" + user.getRole().name() + ":" + user.getFullName();
         }
-        return "ERROR:Неверный логин или пароль";
+        return "ERROR: Неверный логин или пароль";
     }
 
     private String handleRegister(String[] parts) {
-        if (parts.length < 3) return "ERROR:Неверный формат";
-        if (userDAO.findByLogin(parts[1]) != null) return "ERROR:Пользователь существует";
-        return userDAO.createUser(parts[1], parts[2], parts.length > 3 ? parts[3] : parts[1]) ? "OK:Успешно" : "ERROR:Ошибка";
+        if (parts.length < 3) return "ERROR: Неверный формат";
+        if (userDAO.findByLogin(parts[1]) != null) return "ERROR: Логин уже занят";
+        return userDAO.createUser(parts[1], parts[2], parts.length > 3 ? parts[3] : parts[1]) ? "OK: Успешно" : "ERROR: Ошибка";
     }
 
-    private String handleLogout() { currentUser = null; return "OK:Выход выполнен"; }
+    private String handleLogout() { currentUser = null; return "OK: Выход выполнен"; }
 
     private String handleGetClients() {
-        if (currentUser == null) return "ERROR:Не авторизован";
+        if (currentUser == null) return "ERROR: Не авторизован";
         List<Client> clients = clientDAO.getAllClients();
         Map<Integer, String> names = new HashMap<>();
         for (User u : userDAO.getAllUsers()) {
@@ -213,8 +207,8 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleSearchClients(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (parts.length < 2) return "ERROR:Укажите поисковый запрос";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (parts.length < 2) return "ERROR: Укажите поисковый запрос";
 
         String query = parts[1].toLowerCase();
         List<Client> allClients = clientDAO.getAllClients();
@@ -254,68 +248,60 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleAddClient(String[] commandParts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (commandParts.length < 2) return "ERROR:Неверный формат";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (commandParts.length < 2) return "ERROR: Неверный формат";
         String[] d = decodePayload(commandParts[1]);
-        if (d.length < 3) return "ERROR:Неверный формат";
+        if (d.length < 3) return "ERROR: Неверный формат";
         String email = d.length > 3 ? d[3] : "";
         String address = d.length > 4 ? d[4] : "";
         String birthYearStr = d.length > 5 ? d[5] : "";
-        if (!isValidEmail(email)) return "ERROR:Некорректный email";
+        if (!isValidEmail(email)) return "ERROR: Некорректный email";
         Integer birthYear = parseBirthYear(birthYearStr);
         Client c = new Client(d[0], d[1], d[2], currentUser.getId());
         c.setEmail(email);
         c.setAddress(address);
         c.setBirthYear(birthYear);
-        return clientDAO.createClient(c) ? "OK:" + c.getId() : "ERROR:Ошибка создания клиента";
+        return clientDAO.createClient(c) ? "OK:" + c.getId() : "ERROR: Ошибка создания клиента";
     }
 
     private String handleUpdateClient(String[] commandParts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (commandParts.length < 2) return "ERROR:Неверный формат";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (commandParts.length < 2) return "ERROR: Неверный формат";
         String[] d = decodePayload(commandParts[1]);
-        if (d.length < 4) return "ERROR:Неверный формат";
+        if (d.length < 4) return "ERROR: Неверный формат";
         Client c = clientDAO.findById(Integer.parseInt(d[0]));
-        if (c == null) return "ERROR:Клиент не найден";
+        if (c == null) return "ERROR: Клиент не найден";
         String email = d.length > 4 ? d[4] : "";
         String address = d.length > 5 ? d[5] : "";
         String birthYearStr = d.length > 6 ? d[6] : "";
-        if (!isValidEmail(email)) return "ERROR:Некорректный email";
-        c.setFullName(d[1]);
-        c.setPassport(d[2]);
-        c.setPhone(d[3]);
-        c.setEmail(email);
-        c.setAddress(address);
+        if (!isValidEmail(email)) return "ERROR: Некорректный email";
+        c.setFullName(d[1]); c.setPassport(d[2]); c.setPhone(d[3]);
+        c.setEmail(email); c.setAddress(address);
         c.setBirthYear(parseBirthYear(birthYearStr));
-        return clientDAO.updateClient(c) ? "OK:Обновлён" : "ERROR:Ошибка обновления";
+        return clientDAO.updateClient(c) ? "OK: Обновлён" : "ERROR: Ошибка обновления";
     }
 
-    /** Пустая строка — не меняем год при обновлениях через старых клиентов; иначе год или сброс (0). */
     private Integer parseBirthYear(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             int y = Integer.parseInt(raw.trim());
             if (y < 1900 || y > LocalDate.now().getYear()) return null;
             return y;
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        } catch (NumberFormatException e) { return null; }
     }
 
-    /** Возраст по году рождения: текущий год минус год (как в ТЗ). */
     private boolean isAdult(Integer birthYear) {
-        int currentYear = LocalDate.now().getYear();
-        return birthYear != null && (currentYear - birthYear) >= 18;
+        return birthYear != null && (LocalDate.now().getYear() - birthYear) >= 18;
     }
 
     private String handleDeleteClient(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR:Недостаточно прав";
-        return clientDAO.deleteClient(Integer.parseInt(parts[1])) ? "OK:Удалён" : "ERROR:Ошибка удаления";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR: Недостаточно прав";
+        return clientDAO.deleteClient(Integer.parseInt(parts[1])) ? "OK: Удалён" : "ERROR: Ошибка удаления";
     }
 
     private String handleGetCredits(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
+        if (currentUser == null) return "ERROR: Не авторизован";
         List<Credit> credits = parts.length > 1 ? creditDAO.getCreditsByClientId(Integer.parseInt(parts[1])) : creditDAO.getAllCredits();
         Map<Integer, String> names = new HashMap<>();
         for (User u : userDAO.getAllUsers()) {
@@ -338,43 +324,52 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleAddCredit(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
-        if (currentUser.getRole() == Role.SUPER_ADMIN) return "ERROR:Супер-админ не может добавлять кредиты";
-        if (parts.length < 6) return "ERROR:Неверный формат";
+        if (currentUser == null) return "ERROR: Не авторизован";
+        if (currentUser.getRole() == Role.SUPER_ADMIN) return "ERROR: Супер-админ не может добавлять кредиты";
+        if (parts.length < 6) return "ERROR: Неверный формат";
         int clientId = Integer.parseInt(parts[1]);
         Client clientRow = clientDAO.findById(clientId);
-        if (clientRow == null) return "ERROR:Клиент не найден";
-        if (clientRow.getBirthYear() == null)
-            return "ERROR:Не указан год рождения клиента";
-        if (!isAdult(clientRow.getBirthYear()))
-            return "ERROR:Клиент несовершеннолетний, оформление кредита запрещено";
-        // проверка кредитного рейтинга
+        if (clientRow == null) return "ERROR: Клиент не найден";
+        if (clientRow.getBirthYear() == null) return "ERROR: Не указан год рождения клиента";
+        if (!isAdult(clientRow.getBirthYear())) return "ERROR: Клиент несовершеннолетний";
         int score = scoreCalculator.calculateScore(clientId);
-        String letter = scoreCalculator.getRatingLetter(score);
-        if (letter.equals("E")) {
-            return "ERROR:Кредитный рейтинг клиента слишком низкий (E). В выдаче кредита отказано";
-        }
-
+        if (scoreCalculator.getRatingLetter(score).equals("E")) return "ERROR: Кредитный рейтинг слишком низкий (E)";
         Credit c = new Credit(clientId, currentUser.getId(), new BigDecimal(parts[2]),
                 Integer.parseInt(parts[3]), new BigDecimal(parts[4]), LocalDate.parse(parts[5]));
         if (creditDAO.createCredit(c)) {
             paymentDAO.generatePaymentSchedule(c.getId(), c.getMonthlyPayment(), c.getIssueDate(), c.getTermMonths());
             return "OK:" + c.getId();
         }
-        return "ERROR:Ошибка оформления кредита";
+        return "ERROR: Ошибка оформления кредита";
     }
 
     private String handleCloseCredit(String[] parts) {
-        if (currentUser == null) return "Не авторизован";
+        if (currentUser == null) return "ERROR: Не авторизован";
         int creditId = Integer.parseInt(parts[1]);
         List<Payment> payments = paymentDAO.getPaymentsByCreditId(creditId);
         boolean allDone = payments.stream().allMatch(p -> p.getStatus() != PaymentStatus.PENDING);
-        if (!allDone) return "ERROR:Есть неоплаченные платежи";
-        return creditDAO.closeCredit(creditId) ? "OK:Закрыт" : "ERROR:Ошибка закрытия";
+        if (!allDone) return "ERROR: Есть неоплаченные платежи";
+        // Проверяем, вся ли сумма кредита выплачена
+        Credit credit = creditDAO.findById(creditId);
+        if (credit == null) return "ERROR: Кредит не найден";
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        for (Payment p : payments) {
+            if (p.getStatus() == PaymentStatus.PAID && p.getActualAmount() != null) {
+                totalPaid = totalPaid.add(p.getActualAmount());
+            }
+        }
+        if (totalPaid.compareTo(credit.getAmount()) < 0) {
+            BigDecimal debt = credit.getAmount().subtract(totalPaid);
+            // Добавляем дополнительный платёж с повышенной суммой (пеня 10%)
+            BigDecimal penalty = debt.multiply(new BigDecimal("1.10"));
+            paymentDAO.addExtraPayment(creditId, LocalDate.now().plusMonths(1), penalty);
+            return "ERROR: Недостаточно выплат. Добавлен дополнительный платёж на " + penalty + " BYN";
+        }
+        return creditDAO.closeCredit(creditId) ? "OK: Закрыт" : "ERROR: Ошибка закрытия";
     }
 
     private String handleGetPayments(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
+        if (currentUser == null) return "ERROR: Не авторизован";
         paymentDAO.updateOverduePayments();
         List<Payment> list = paymentDAO.getPaymentsByCreditId(Integer.parseInt(parts[1]));
         StringBuilder sb = new StringBuilder("OK:");
@@ -389,51 +384,47 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleMarkPayment(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
+        if (currentUser == null) return "ERROR: Не авторизован";
         int payId = Integer.parseInt(parts[1]);
         BigDecimal amount = new BigDecimal(parts[2]);
         Payment pay = paymentDAO.findById(payId);
-        if (pay == null) return "ERROR:Не найден";
-
-        // Проверка предыдущих
-        List<Payment> all = paymentDAO.getPaymentsByCreditId(pay.getCreditId());
-        for (Payment p : all) {
-            if (p.getId() < payId && p.getStatus() == PaymentStatus.PENDING) {
-                return "ERROR:Оплатите сначала платёж #" + p.getId();
-            }
+        if (pay == null) return "ERROR: Не найден";
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return "ERROR: Сумма платежа должна быть положительной";
         }
 
+        List<Payment> all = paymentDAO.getPaymentsByCreditId(pay.getCreditId());
+        for (Payment p : all) {
+            if (p.getId() < payId && p.getStatus() == PaymentStatus.PENDING)
+                return "ERROR: Оплатите сначала платёж #" + p.getId();
+        }
         boolean paid = paymentDAO.markAsPaid(payId, amount);
-        if (!paid) return "ERROR:Не удалось провести оплату";
+        if (!paid) return "ERROR: Не удалось провести оплату";
         updateCreditStatus(pay.getCreditId());
         return amount.compareTo(pay.getPlannedAmount()) > 0
-                ? "OK:Оплачено с переплатой, будущие платежи уменьшены"
-                : "OK:Оплачено";
+                ? "OK: Оплачено с переплатой, будущие платежи уменьшены"
+                : "OK: Оплачено";
     }
 
     private void updateCreditStatus(int creditId) {
         List<Payment> pp = paymentDAO.getPaymentsByCreditId(creditId);
-        if (pp.stream().allMatch(p -> p.getStatus() != PaymentStatus.PENDING)) {
-            creditDAO.closeCredit(creditId);
-        }
+        if (pp.stream().allMatch(p -> p.getStatus() != PaymentStatus.PENDING)) creditDAO.closeCredit(creditId);
     }
 
     private String handleGetStatistics() {
-        if (currentUser == null || currentUser.getRole() == Role.USER) return "ERROR:Недостаточно прав";
+        if (currentUser == null || currentUser.getRole() == Role.USER) return "ERROR: Недостаточно прав";
         CreditDAO.CreditStatistics s = creditDAO.getStatistics();
         return "OK:" + s.getTotalCredits() + "|" + s.getTotalAmount() + "|" + s.getActiveCount() + "|" + s.getClosedCount() + "|" + s.getOverdueCount();
     }
 
     private String handleCalculateRating(String[] parts) {
-        if (currentUser == null) return "ERROR:Не авторизован";
+        if (currentUser == null) return "ERROR: Не авторизован";
         int score = scoreCalculator.calculateScore(Integer.parseInt(parts[1]));
-        String letter = scoreCalculator.getRatingLetter(score);
-        String category = scoreCalculator.getScoreCategory(score);
-        return "OK:" + score + "|" + letter + "|" + category;
+        return "OK:" + score + "|" + scoreCalculator.getRatingLetter(score) + "|" + scoreCalculator.getScoreCategory(score);
     }
 
     private String handleGetUsers() {
-        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR:Только супер-админ";
+        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR: Только супер-админ";
         StringBuilder sb = new StringBuilder("OK:");
         boolean first = true;
         for (User user : userDAO.getAllUsers()) {
@@ -445,73 +436,62 @@ public class ClientHandler implements Runnable {
         }
         return sb.toString();
     }
+
     private String handleAddUser(String[] commandParts) {
-        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR:Только супер-админ";
-        if (commandParts.length < 2) return "ERROR:Неверный формат";
+        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR: Только супер-админ";
+        if (commandParts.length < 2) return "ERROR: Неверный формат";
         String[] d = decodePayload(commandParts[1]);
-        if (d.length < 4) return "ERROR:Неверный формат";
-        String login = d[0].trim();
-        String password = d[1];
-        String fullName = d[2].trim();
+        if (d.length < 4) return "ERROR: Неверный формат";
+        String login = d[0].trim(), password = d[1], fullName = d[2].trim();
         Role role = Role.valueOf(d[3].trim());
-        if (login.isBlank() || password.isBlank() || fullName.isBlank()) return "ERROR:Пустые поля недопустимы";
-        if (userDAO.existsByLogin(login)) return "ERROR:Логин уже занят";
-        return userDAO.createUserWithRole(login, password, fullName, role) ? "OK:Создан" : "ERROR:Ошибка создания";
+        if (login.isBlank() || password.isBlank() || fullName.isBlank()) return "ERROR: Пустые поля недопустимы";
+        if (userDAO.existsByLogin(login)) return "ERROR: Логин уже занят";
+        return userDAO.createUserWithRole(login, password, fullName, role) ? "OK: Создан" : "ERROR: Ошибка создания";
     }
+
     private String handleDeleteUser(String[] parts) {
-        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR:Только супер-админ";
-        if (parts.length < 2) return "ERROR:Укажите ID пользователя";
+        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR: Только супер-админ";
+        if (parts.length < 2) return "ERROR: Укажите ID пользователя";
         int userId = Integer.parseInt(parts[1]);
-        if (currentUser.getId() == userId) return "ERROR:Нельзя удалить текущего пользователя";
+        if (currentUser.getId() == userId) return "ERROR: Нельзя удалить текущего пользователя";
         User target = userDAO.findById(userId);
-        if (target == null) return "ERROR:Пользователь не найден";
-        if (target.getRole() == Role.SUPER_ADMIN && userDAO.countByRole(Role.SUPER_ADMIN) <= 1) {
-            return "ERROR:Должен остаться минимум один SUPER_ADMIN";
-        }
-        return userDAO.deactivateUser(userId) ? "OK:Удалён" : "ERROR:Ошибка удаления";
+        if (target == null) return "ERROR: Пользователь не найден";
+        if (target.getRole() == Role.SUPER_ADMIN && userDAO.countByRole(Role.SUPER_ADMIN) <= 1)
+            return "ERROR: Должен остаться минимум один SUPER_ADMIN";
+        return userDAO.deactivateUser(userId) ? "OK: Удалён" : "ERROR: Ошибка удаления";
     }
+
     private String handleChangeRole(String[] commandParts) {
-        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR:Только супер-админ";
-        if (commandParts.length < 2) return "ERROR:Неверный формат";
+        if (currentUser == null || currentUser.getRole() != Role.SUPER_ADMIN) return "ERROR: Только супер-админ";
+        if (commandParts.length < 2) return "ERROR: Неверный формат";
         String[] d = decodePayload(commandParts[1]);
-        if (d.length < 4) return "ERROR:Неверный формат";
+        if (d.length < 4) return "ERROR: Неверный формат";
         int userId = Integer.parseInt(d[0]);
-        String login = d[1].trim();
-        String fullName = d[2].trim();
+        String login = d[1].trim(), fullName = d[2].trim();
         Role newRole = Role.valueOf(d[3].trim());
         String password = d.length > 4 ? d[4] : "";
 
         User target = userDAO.findById(userId);
-        if (target == null) return "ERROR:Пользователь не найден";
-        if (login.isBlank() || fullName.isBlank()) return "ERROR:Пустые поля недопустимы";
+        if (target == null) return "ERROR: Пользователь не найден";
+        if (login.isBlank() || fullName.isBlank()) return "ERROR: Пустые поля недопустимы";
 
         User byLogin = userDAO.findByLogin(login);
-        if (byLogin != null && byLogin.getId() != userId) return "ERROR:Логин уже занят";
+        if (byLogin != null && byLogin.getId() != userId) return "ERROR: Логин уже занят";
 
-        if (target.getRole() == Role.SUPER_ADMIN && newRole != Role.SUPER_ADMIN
-                && userDAO.countByRole(Role.SUPER_ADMIN) <= 1) {
-            return "ERROR:Должен остаться минимум один SUPER_ADMIN";
-        }
+        if (target.getRole() == Role.SUPER_ADMIN && newRole != Role.SUPER_ADMIN && userDAO.countByRole(Role.SUPER_ADMIN) <= 1)
+            return "ERROR: Должен остаться минимум один SUPER_ADMIN";
+        if (currentUser.getId() == userId && newRole != Role.SUPER_ADMIN && userDAO.countByRole(Role.SUPER_ADMIN) <= 1)
+            return "ERROR: Нельзя разжаловать последнего SUPER_ADMIN";
 
-        if (currentUser.getId() == userId && newRole != Role.SUPER_ADMIN
-                && userDAO.countByRole(Role.SUPER_ADMIN) <= 1) {
-            return "ERROR:Нельзя разжаловать последнего SUPER_ADMIN";
-        }
-
-        return userDAO.updateUserProfileAndRole(userId, login, fullName, newRole, password)
-                ? "OK:Обновлён"
-                : "ERROR:Ошибка обновления";
+        return userDAO.updateUserProfileAndRole(userId, login, fullName, newRole, password) ? "OK: Обновлён" : "ERROR: Ошибка обновления";
     }
 
     private String[] decodePayload(String encodedPayload) {
-        String decoded = new String(Base64.getDecoder().decode(encodedPayload), StandardCharsets.UTF_8);
-        // -1 сохраняет пустые поля на конце (иначе теряются email или address перед завершающим |)
-        return decoded.split("\\|", -1);
+        return new String(Base64.getDecoder().decode(encodedPayload), StandardCharsets.UTF_8).split("\\|", -1);
     }
 
     private boolean isValidEmail(String email) {
-        if (email == null || email.isBlank()) return true;
-        return EMAIL_PATTERN.matcher(email).matches();
+        return email == null || email.isBlank() || EMAIL_PATTERN.matcher(email).matches();
     }
 
     private void closeConnection() {

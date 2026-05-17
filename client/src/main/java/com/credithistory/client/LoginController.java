@@ -1,6 +1,5 @@
 package com.credithistory.client;
 
-
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -36,11 +35,11 @@ public class LoginController {
             networkClient = new NetworkClient();
 
             if (!networkClient.connect("localhost", 8080)) {
-                updateStatus("Ошибка: сервер не запущен!");
+                updateStatus("Ошибка: сервер не запущен");
                 return;
             }
 
-            updateStatus("Проверка учетных данных...");
+            updateStatus("Проверка учётных данных...");
             String response = networkClient.sendCommand("login " + login + " " + password);
             if (response == null) {
                 updateStatus("Ошибка: нет ответа от сервера");
@@ -55,21 +54,17 @@ public class LoginController {
                 String fullName = parts.length > 3 ? parts[3] : login;
 
                 Role role = Role.valueOf(roleStr);
-
                 User currentUser = new User();
                 currentUser.setId(userId);
                 currentUser.setLogin(login);
                 currentUser.setFullName(fullName);
                 currentUser.setRole(role);
 
-                updateStatus("Вход выполнен успешно!");
+                updateStatus("Вход выполнен успешно");
                 Platform.runLater(() -> openMainWindow(currentUser, networkClient));
 
-            } else if (response.startsWith("ERROR:")) {
-                updateStatus("Ошибка: " + response.substring(6));
-                networkClient.close();
             } else {
-                updateStatus("Неверный логин или пароль");
+                updateStatus(response.replace("ERROR:", "Ошибка:").trim());
                 networkClient.close();
             }
         }).start();
@@ -91,7 +86,7 @@ public class LoginController {
             networkClient = new NetworkClient();
 
             if (!networkClient.connect("localhost", 8080)) {
-                updateStatus("Ошибка: сервер не запущен!");
+                updateStatus("Ошибка: сервер не запущен");
                 return;
             }
 
@@ -101,11 +96,9 @@ public class LoginController {
             if (response == null) {
                 updateStatus("Ошибка: нет ответа от сервера");
             } else if (response.startsWith("OK:")) {
-                updateStatus("Регистрация успешна! Теперь войдите.");
-            } else if (response.startsWith("ERROR:")) {
-                updateStatus("Ошибка: " + response.substring(6));
+                updateStatus("Регистрация успешна. Теперь войдите");
             } else {
-                updateStatus("Ошибка регистрации");
+                updateStatus(response.replace("ERROR:", "Ошибка:").trim());
             }
         }).start();
     }
@@ -116,16 +109,8 @@ public class LoginController {
 
     private void openMainWindow(User user, NetworkClient client) {
         try {
-            String fxmlFile;
-            String title;
-
-            if (user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN) {
-                fxmlFile = "/client-view.fxml";  // Пока для всех client-view
-                title = "Система учета кредитных историй — Администратор";
-            } else {
-                fxmlFile = "/client-view.fxml";
-                title = "Система учета кредитных историй — " + user.getFullName();
-            }
+            String fxmlFile = "/client-view.fxml";
+            String title = "Система учёта кредитных историй — " + user.getFullName();
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlFile));
             Scene scene = new Scene(loader.load());
@@ -134,8 +119,8 @@ public class LoginController {
             if (controller instanceof ClientController) {
                 ClientController clientController = (ClientController) controller;
                 clientController.setCurrentUser(user);
-                clientController.setNetworkClient(client);  // ← ПЕРЕДАЁМ СОЕДИНЕНИЕ
-                clientController.initializeData();  // ← ЗАГРУЖАЕМ КЛИЕНТОВ
+                clientController.setNetworkClient(client);
+                clientController.initializeData();
             }
 
             Stage stage = (Stage) loginField.getScene().getWindow();
@@ -143,9 +128,7 @@ public class LoginController {
             stage.setTitle(title);
             stage.setMaximized(true);
             stage.setOnCloseRequest(e -> {
-                if (client != null) {
-                    client.close();
-                }
+                if (client != null) client.close();
                 System.exit(0);
             });
 
@@ -154,6 +137,7 @@ public class LoginController {
             e.printStackTrace();
         }
     }
+
     @FXML
     private void handleClear() {
         loginField.clear();

@@ -343,6 +343,18 @@ public class PaymentDAO {
         }
     }
 
+    public void addExtraPayment(int creditId, LocalDate date, BigDecimal amount) {
+        String sql = "INSERT INTO payments (credit_id, planned_date, planned_amount, status) VALUES (?, ?, ?, 'PENDING')";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, creditId);
+            stmt.setDate(2, Date.valueOf(date));
+            stmt.setBigDecimal(3, amount);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
     private void recalculateFuturePayments(Connection conn, int creditId, BigDecimal debtDelta) throws SQLException {
         List<Payment> pendingPayments = new ArrayList<>();
         String selectSQL = "SELECT * FROM payments WHERE credit_id = ? AND status = 'PENDING' ORDER BY planned_date";

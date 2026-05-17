@@ -24,7 +24,7 @@ public class Client implements Serializable {
         this.registeredBy = registeredBy;
     }
 
-    // Геттеры и сеттеры
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 

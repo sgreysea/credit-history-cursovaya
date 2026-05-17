@@ -28,7 +28,7 @@ public class UserService {
 
     public String register(String login, String password) {
         if (users.containsKey(login)) {
-            return "error: user already exists";
+            return " user already exists";
         }
 
         User user = new User(
@@ -48,11 +48,11 @@ public class UserService {
         User user = users.get(login);
 
         if (user == null) {
-            return "error: user not found";
+            return " user not found";
         }
 
         if (!user.getPassword().equals(password)) {
-            return "error: wrong password";
+            return " wrong password";
         }
 
         logger.info("User logged in: "+ login);
@@ -67,7 +67,7 @@ public class UserService {
         User user = users.get(login);
         if (user == null) return false;
 
-        // SUPER_ADMIN имеет все права
+
         if (user.getRole() == Role.SUPER_ADMIN) return true;
 
         return user.getRole() == requiredRole;

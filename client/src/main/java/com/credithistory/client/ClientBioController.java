@@ -46,7 +46,7 @@ public class ClientBioController {
         });
     }
 
-    /** Формат: ... рейтинг|цвет [| кредиты: активн|просроч.|закрыт обыч|закр. досроч — 4 поля] */
+
     public void setClientData(String[] data) {
         fullNameLabel.setText(data[0]);
         if (data[1].length() >= 19) {

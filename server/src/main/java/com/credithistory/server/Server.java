@@ -21,7 +21,7 @@ public class Server {
     private final ExecutorService pool = Executors.newFixedThreadPool(10);
 
     public void start() {
-        // Запускаем фоновую проверку просрочек
+        // проверку просрочек
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
             PaymentDAO paymentDAO = new PaymentDAO();

@@ -140,13 +140,13 @@ public class AddCreditController {
                         saved = true;
                         closeWindow();
                     } else {
-                        errorLabel.setText("Ошибка оформления кредита: " + response);
+                        errorLabel.setText(response);
                     }
                 });
             }).start();
 
         } catch (NumberFormatException e) {
-            errorLabel.setText("Проверьте правильность введённых чисел");
+            errorLabel.setText("Проверьте правильность введённых чисел" );
         }
     }
 

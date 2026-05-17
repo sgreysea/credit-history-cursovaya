@@ -8,7 +8,6 @@ import java.util.List;
 
 public class UserDAO {
 
-    // Найти пользователя по логину
     public User findByLogin(String login) {
         String sql = "SELECT * FROM users WHERE login = ? AND is_active = true";
 
@@ -34,7 +33,7 @@ public class UserDAO {
         return null;
     }
 
-    // Найти пользователя по ID
+
     public User findById(int id) {
         String sql = "SELECT * FROM users WHERE id = ?";
 
@@ -60,7 +59,6 @@ public class UserDAO {
         return null;
     }
 
-    // Получить всех пользователей
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT * FROM users ORDER BY login";
@@ -85,7 +83,6 @@ public class UserDAO {
         return users;
     }
 
-    // Создать нового пользователя
     public boolean createUser(String login, String password, String fullName) {
         String sql = "INSERT INTO users (login, password, full_name, role) VALUES (?, ?, ?, 'USER')";
 
@@ -104,7 +101,6 @@ public class UserDAO {
         }
     }
 
-    // Создать пользователя с указанной ролью (для админа)
     public boolean createUserWithRole(String login, String password, String fullName, Role role) {
         String sql = "INSERT INTO users (login, password, full_name, role) VALUES (?, ?, ?, ?)";
 
@@ -123,13 +119,13 @@ public class UserDAO {
         }
     }
 
-    // Проверить пароль пользователя
+
     public boolean checkPassword(String login, String password) {
         User user = findByLogin(login);
         return user != null && user.getPassword().equals(password);
     }
 
-    // Обновить данные пользователя
+
     public boolean updateUser(User user) {
         String sql = "UPDATE users SET login = ?, full_name = ?, role = ?, is_active = ? WHERE id = ?";
 
@@ -149,7 +145,7 @@ public class UserDAO {
         }
     }
 
-    // Изменить пароль пользователя
+
     public boolean changePassword(int userId, String newPassword) {
         String sql = "UPDATE users SET password = ? WHERE id = ?";
 
@@ -166,7 +162,7 @@ public class UserDAO {
         }
     }
 
-    // Удалить пользователя (деактивировать)
+
     public boolean deactivateUser(int userId) {
         String sql = "UPDATE users SET is_active = false WHERE id = ?";
 
@@ -181,7 +177,7 @@ public class UserDAO {
         }
     }
 
-    // Активировать пользователя
+
     public boolean activateUser(int userId) {
         String sql = "UPDATE users SET is_active = true WHERE id = ?";
 
@@ -196,7 +192,7 @@ public class UserDAO {
         }
     }
 
-    // Полностью удалить пользователя из БД (только для SUPER_ADMIN)
+
     public boolean deleteUserPermanently(int userId) {
         String sql = "DELETE FROM users WHERE id = ?";
 
@@ -211,7 +207,7 @@ public class UserDAO {
         }
     }
 
-    // Проверить, существует ли пользователь с таким логином
+
     public boolean existsByLogin(String login) {
         String sql = "SELECT COUNT(*) FROM users WHERE login = ?";
 

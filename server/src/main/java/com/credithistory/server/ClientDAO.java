@@ -7,7 +7,7 @@ import java.util.List;
 
 public class ClientDAO {
 
-    /** Добавляет birth_year при первом запуске. */
+
     public static void ensureSchema() {
         try (Connection conn = DatabaseConnection.getConnection();
              Statement st = conn.createStatement()) {

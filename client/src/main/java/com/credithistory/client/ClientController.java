@@ -60,7 +60,7 @@ public class ClientController {
         this.currentUser = user;
         userInfoLabel.setText("Сотрудник: " + user.getFullName() + " (" + user.getRole().getDisplayName() + ")");
 
-        // Супер-админ не может оформлять/закрывать кредиты и график платежей
+        // запреты суперадмину
         if (user.getRole() == Role.SUPER_ADMIN) {
             addCreditButton.setManaged(false);
             addCreditButton.setVisible(false);
@@ -95,7 +95,7 @@ public class ClientController {
         phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
         creditCountColumn.setCellValueFactory(new PropertyValueFactory<>("creditCount"));
 
-        // Колонка "Добавил сотрудник"
+        //добавил сотрудник колонка емае работает
         TableColumn<Client, String> addedByColumn = new TableColumn<>("Добавил сотрудник");
         addedByColumn.setCellValueFactory(cellData -> {
             Client c = cellData.getValue();
@@ -104,17 +104,14 @@ public class ClientController {
         });
         clientsTable.getColumns().add(addedByColumn);
 
-        // Колонка Email
         TableColumn<Client, String> emailColumn = new TableColumn<>("Email");
         emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
         clientsTable.getColumns().add(emailColumn);
 
-// Колонка Адрес
         TableColumn<Client, String> addressColumn = new TableColumn<>("Адрес");
         addressColumn.setCellValueFactory(new PropertyValueFactory<>("address"));
         clientsTable.getColumns().add(addressColumn);
 
-        // Колонка "Рейтинг" — цветная буква из кэша clientRatings
         ratingColumn.setCellValueFactory(cellData -> {
             Client c = cellData.getValue();
             String letter = clientRatings.getOrDefault(c.getId(), "?");
@@ -153,7 +150,6 @@ public class ClientController {
         creditDateColumn.setCellValueFactory(new PropertyValueFactory<>("issueDate"));
         creditStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        // Колонка "Добавил кредит"
         TableColumn<Credit, String> creditAddedByColumn = new TableColumn<>("Добавил кредит");
         creditAddedByColumn.setCellValueFactory(cellData -> {
             Credit c = cellData.getValue();
@@ -397,7 +393,7 @@ public class ClientController {
                             loadClients();
                             updateStatus("Клиент удалён");
                         } else {
-                            showAlert("Ошибка: " + response);
+                            showAlert("Ошибка:" +response);
                         }
                     });
                 }).start();
@@ -433,7 +429,7 @@ public class ClientController {
                     loadCreditsForClient(selected.getClientId());
                     updateStatus("Кредит закрыт");
                 } else {
-                    showAlert("Ошибка: " + response);
+                    showAlert(response);
                 }
             });
         }).start();
@@ -505,7 +501,7 @@ public class ClientController {
                     stage.setScene(new Scene(vbox, 600, 400));
                     stage.show();
                 } else {
-                    showAlert("Ошибка: " + response);
+                    showAlert(response);
                 }
             });
         }).start();
@@ -655,7 +651,7 @@ public class ClientController {
                 if (response != null && response.startsWith("OK:")) {
                     onSaved.run();
                 } else {
-                    showAlert("Ошибка добавления: " + response);
+                    showAlert(response.replace("ERROR:", "").trim());
                 }
             });
         }).start();
@@ -693,7 +689,7 @@ public class ClientController {
                 if (response != null && response.startsWith("OK:")) {
                     onSaved.run();
                 } else {
-                    showAlert("Ошибка редактирования: " + response);
+                    showAlert(response.replace("ERROR:", "").trim());
                 }
             });
         }).start();

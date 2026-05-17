@@ -15,7 +15,7 @@ public class ClientStatistics {
     private String ratingLetter;
     private String ratingColor;
 
-    // Геттеры и сеттеры
+
     public int getClientId() { return clientId; }
     public void setClientId(int clientId) { this.clientId = clientId; }
 
@@ -46,7 +46,7 @@ public class ClientStatistics {
     public int getEarlyPayments() { return earlyPayments; }
     public void setEarlyPayments(int earlyPayments) { this.earlyPayments = earlyPayments; }
 
-    // Расчётные методы
+
     public int getLatePayments() {
         return totalPaid - paidOnTime;
     }

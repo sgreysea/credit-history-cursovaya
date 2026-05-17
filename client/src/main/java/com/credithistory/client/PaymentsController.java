@@ -143,7 +143,7 @@ public class PaymentsController {
         }
 
         if (selected.getStatus() == PaymentStatus.OVERDUE) {
-            showAlert("Этот платёж просрочен. Воспользуйтесь досрочным погашением");
+            showAlert("Этот платёж просрочен. Выберите другой платеж");
             return;
         }
 
@@ -174,7 +174,7 @@ public class PaymentsController {
                                 updateStatus("Платёж обработан");
                             }
                         } else {
-                            showAlert("Ошибка: " + response);
+                            showAlert( response);
                         }
                     });
                 }).start();
